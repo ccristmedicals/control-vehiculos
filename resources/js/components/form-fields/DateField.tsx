@@ -1,4 +1,4 @@
-import { DateFieldProps } from "@/types";
+import { DateFieldProps } from '@/types';
 
 export function DateField({ id, label, expedicion, vencimiento, onChange }: DateFieldProps) {
     const exp = typeof expedicion === 'string' ? expedicion : '';

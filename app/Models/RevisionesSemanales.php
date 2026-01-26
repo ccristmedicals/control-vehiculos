@@ -10,7 +10,7 @@ class RevisionesSemanales extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
-    
+
     protected $fillable = [
         'vehiculo_id',
         'user_id',

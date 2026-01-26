@@ -106,7 +106,7 @@ class FacturasController extends Controller
         $adicionales = [
             $adicional_1 = User::select('id', 'name')->find($vehiculo->user_id_adicional_1) ?? null,
             $adicional_2 = User::select('id', 'name')->find($vehiculo->user_id_adicional_2) ?? null,
-            $adicional_3 = User::select('id', 'name')->find($vehiculo->user_id_adicional_3) ?? null    
+            $adicional_3 = User::select('id', 'name')->find($vehiculo->user_id_adicional_3) ?? null
         ];
 
         $usuarioQuePaga = $facturaAuditada?->cubre
@@ -221,8 +221,8 @@ class FacturasController extends Controller
                 'cubre' => 'required|boolean',
                 'cubre_usuario' => 'required',
             ]);
-            
-            if($validatedData['cubre_usuario'] == 'Empresa') $validatedData['cubre_usuario'] = null;
+
+            if ($validatedData['cubre_usuario'] == 'Empresa') $validatedData['cubre_usuario'] = null;
 
             $factura->aprobado = $validatedData['aprobado'];
             $factura->observaciones_admin = $validatedData['observaciones_admin'];

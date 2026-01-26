@@ -247,6 +247,74 @@ export default function RevisionSemanal() {
         );
     };
 
+    // 3. CAMBIO VISUAL: Añadimos un index para saber cuál es la más reciente visualmente
+    const renderFichaFromRevision = (revision: any, index: number) => {
+        const tipoFormulario = revision.tipo_formulario === 1 ? 'SPARK_PEUGEOT' : revision.tipo_formulario === 2 ? 'CHEYENNE_TRITON' : 'MOTO';
+
+        const baseFields: Field[] =
+            tipoFormulario === 'MOTO'
+                ? fluidosSemanalFields['MOTO']
+                : tipoFormulario === 'SPARK_PEUGEOT'
+                    ? sparkPeugeotFields['CARRO']
+                    : cheyenneTritonFields['CARRO'];
+
+        const hasObservacion = baseFields.some((f) => f.id === 'observacion_general');
+        const fields: Field[] = hasObservacion
+            ? baseFields
+            : [...baseFields, { id: 'observacion_general', label: 'Observación general', type: 'textarea', required: false }];
+
+        const expediente: Record<string, any> = {};
+        revision.imagenes.forEach((img: any) => {
+            expediente[img.tipo] = img.imagen;
+        });
+        if (revision.observacion?.observacion) {
+            expediente['observacion_general'] = revision.observacion.observacion;
+        }
+
+        // Ajustamos el título para que no diga siempre "Última"
+        const titulo = index === 0
+            ? `Última revisión (${tipoFormulario}) - ${new Date(revision.created_at).toLocaleDateString()}`
+            : `Revisión Histórica (${tipoFormulario}) - ${new Date(revision.created_at).toLocaleDateString()}`;
+
+        return (
+            <FichaSeccion
+                key={revision.id}
+                title={titulo}
+                fields={fields}
+                formType="semanal"
+                expediente={expediente}
+                onChange={() => { }}
+                onSubmit={() => { }}
+            />
+        );
+    };
+
+    const renderFormularioNuevo = () => {
+        // ... (Tu renderFormularioNuevo se mantiene igual)
+        const baseFields: Field[] =
+            formularioSeleccionado === 'MOTO'
+                ? fluidosSemanalFields['MOTO']
+                : formularioSeleccionado === 'SPARK_PEUGEOT'
+                    ? sparkPeugeotFields['CARRO']
+                    : cheyenneTritonFields['CARRO'];
+
+        const hasObservacion = baseFields.some((f) => f.id === 'observacion_general');
+        const fields: Field[] = hasObservacion
+            ? baseFields
+            : [...baseFields, { id: 'observacion_general', label: 'Observación general', type: 'textarea', required: false }];
+
+        return (
+            <FichaSeccion
+                title={`Nueva Revisión Semanal (${formularioSeleccionado})`}
+                fields={fields}
+                formType="semanal"
+                expediente={formData}
+                onChange={setFormData}
+                onSubmit={(data) => handleFormSubmit('semanal', data, placa)}
+            />
+        );
+    };
+
     return (
         <AppLayout>
             <Head title={`Revisión Semanal - ${vehiculo.modelo}`} />
@@ -257,12 +325,8 @@ export default function RevisionSemanal() {
 
                 <div className="mx-auto mb-10 max-w-5xl">
                     <div className="mb-4 flex justify-end gap-4 text-gray-700 dark:text-gray-200">
-                        <p>
-                            <span className="font-semibold">Desde:</span> {inicio}
-                        </p>
-                        <p>
-                            <span className="font-semibold">Hasta:</span> {final}
-                        </p>
+                        <p><span className="font-semibold">Desde:</span> {inicio}</p>
+                        <p><span className="font-semibold">Hasta:</span> {final}</p>
                     </div>
 
                     {/* 4. RENDERIZADO DINÁMICO: Mapeamos el array visible */}

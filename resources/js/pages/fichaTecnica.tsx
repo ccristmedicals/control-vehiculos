@@ -211,8 +211,6 @@ export default function fichaTecnica({
                                         usuario_adicional3: null,
                                     }));
                                 } else {
-                                    // Caso 2: Se asignaron usuarios
-                                    // (payload es { principal, adicional1, adicional2, adicional3 })
                                     setVehiculoActual((prev: any) => ({
                                         ...prev,
                                         usuario: payload.principal,

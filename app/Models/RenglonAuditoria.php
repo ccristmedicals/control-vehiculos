@@ -7,15 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class RenglonAuditoria extends Model
 {
     protected $table = 'auditoria_renglones';
-    
-protected $fillable = [
-    'fact_num',
-    'reng_num',
-    'co_art',
-    'reng_neto',
-    'total_art',
-    'imagen'
-];
+
+    protected $fillable = [
+        'fact_num',
+        'reng_num',
+        'co_art',
+        'reng_neto',
+        'total_art',
+        'imagen'
+    ];
 
 
     public function auditoria()

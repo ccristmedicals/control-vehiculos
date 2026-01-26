@@ -19,9 +19,9 @@ class RoleMiddleware
             '26686507',
             '29960819',
             '25025870',
-        ];  
+        ];
 
-        if(in_array($request->user()->email, $usuariosPermitidos)){
+        if (in_array($request->user()->email, $usuariosPermitidos)) {
             return $next($request);
         }
         abort(403, 'Que paso papá?');

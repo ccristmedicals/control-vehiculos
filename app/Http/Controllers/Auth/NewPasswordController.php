@@ -20,15 +20,15 @@ class NewPasswordController extends Controller
 
     public function actualizar(Request $request): RedirectResponse
     {
-    $request->validate([
-        'email' => 'required|numeric|exists:users,email',
-        'password' => ['required', Rules\Password::defaults()],
-    ], [
-        'email.required' => 'La cédula es obligatoria.',
-        'email.numeric' => 'La cédula debe contener solo números.',
-        'email.exists' => 'No se encontró un usuario con esa cédula.',
-        'password.required' => 'La contraseña es obligatoria.',
-    ]);
+        $request->validate([
+            'email' => 'required|numeric|exists:users,email',
+            'password' => ['required', Rules\Password::defaults()],
+        ], [
+            'email.required' => 'La cédula es obligatoria.',
+            'email.numeric' => 'La cédula debe contener solo números.',
+            'email.exists' => 'No se encontró un usuario con esa cédula.',
+            'password.required' => 'La contraseña es obligatoria.',
+        ]);
 
 
         $user = User::where('email', $request->email)->first();

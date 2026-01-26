@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers\FichaTecnica;
 
 use App\Helpers\NotificacionHelper;

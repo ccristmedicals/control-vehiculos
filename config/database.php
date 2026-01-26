@@ -99,12 +99,11 @@ return [
 
         'sqlsrv' => [
             'driver' => 'sqlsrv',
-            'host' => '192.168.4.20',
-            'port' => 1433,
-            'database' => 'VEHI24', // ← este es el nombre real de la base
-            'username' => 'profit',
-            'password' => 'profit',
-            //'encrypt' => false,
+            'host' => env('DBR_HOST'),
+            'port' => env('DBR_PORT'),
+            'database' => env('DBR_DATABASE'),
+            'username' => env('DBR_USERNAME'),
+            'password' => env('DBR_PASSWORD'),
             'trust_server_certificate' => true,
             'charset' => 'utf8',
             'collation' => 'SQL_Latin1_General_CP1_CI_AS',

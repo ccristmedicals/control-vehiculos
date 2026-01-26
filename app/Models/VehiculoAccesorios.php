@@ -16,4 +16,3 @@ class VehiculoAccesorios extends Model
         return $this->belongsTo(Vehiculo::class, 'vehiculo_id', 'placa');
     }
 }
-

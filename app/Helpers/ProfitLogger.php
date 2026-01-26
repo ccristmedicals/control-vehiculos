@@ -2,9 +2,7 @@
 
 namespace App\Helpers;
 
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
-use Ramsey\Uuid\Uuid;
 
 class ProfitLogger
 {

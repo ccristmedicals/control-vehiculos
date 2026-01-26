@@ -50,7 +50,6 @@ export default function NotificacionCard({ notificacion, onMarcarLeida }: PropsN
                     'border-purple-600 bg-purple-50 dark:bg-purple-900': tipo === 'observacion' && !leida,
                     'border-pink-600 bg-pink-50 dark:bg-pink-900': tipo === 'documentoUsuario' && !leida,
                     'border-teal-600 bg-teal-50 dark:bg-teal-900': tipo === 'auditoria' && !leida,
-
                 },
                 leida && 'border-gray-300 bg-gray-100 dark:border-gray-700 dark:bg-gray-800',
                 !leida && 'hover:scale-[1.02] active:scale-[0.98]',
@@ -75,7 +74,6 @@ export default function NotificacionCard({ notificacion, onMarcarLeida }: PropsN
                         'bg-purple-50 text-purple-600 dark:bg-purple-900 dark:text-purple-400': tipo === 'observacion' && !leida,
                         'bg-pink-100 text-pink-700 dark:bg-pink-800 dark:text-pink-200': tipo === 'documentoUsuario' && !leida,
                         'bg-teal-100 text-teal-700 dark:bg-teal-800 dark:text-teal-200': tipo === 'auditoria' && !leida,
-
                     })}
                 >
                     {tipo}

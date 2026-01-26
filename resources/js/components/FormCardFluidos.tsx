@@ -3,7 +3,6 @@ import { FichaSeccionFluidosProps } from '@/types';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { PanelTopOpen } from 'lucide-react';
 
-
 export default function FichaSeccionFluidos({ title, fields, expediente, onSubmit }: FichaSeccionFluidosProps) {
     return (
         <Disclosure as="div" className="mx-auto w-full max-w-5xl rounded-xl border bg-gray-100 shadow-lg dark:bg-gray-800">

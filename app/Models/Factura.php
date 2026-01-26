@@ -41,8 +41,8 @@ class Factura extends Model
     }
 
     public function getComentarioLimpioAttribute()
-    {   
-        
+    {
+
         $limpio = trim(preg_replace('/[\x00-\x1F\x7F].*/u', '', $this->comentario));
         return trim(preg_replace('/D\/.*/u', '', $limpio));
     }

@@ -3,7 +3,6 @@ import type { AsignacionUserProps, UsuarioAsignado } from '@/types';
 import { router } from '@inertiajs/react';
 import { useState } from 'react';
 
-
 export default function AsignacionUser({ vehiculo, users, onSuccess }: AsignacionUserProps) {
     const [, setAssignedUser] = useState<UsuarioAsignado | null>(vehiculo.usuario || null);
     const [selectedUserId, setSelectedUserId] = useState<string>(String(vehiculo.usuario?.id || ''));
@@ -26,7 +25,7 @@ export default function AsignacionUser({ vehiculo, users, onSuccess }: Asignacio
             preserveState: true,
             forceFormData: true,
             onSuccess: () => {
-                const newUser = users.find((u: { id: any; }) => String(u.id) === selectedUserId) || null;
+                const newUser = users.find((u: { id: any }) => String(u.id) === selectedUserId) || null;
                 setAssignedUser(newUser);
                 if (newUser) {
                     onSuccess?.(newUser);

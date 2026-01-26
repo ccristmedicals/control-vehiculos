@@ -1,4 +1,4 @@
-import { CheckFieldProps } from "@/types";
+import { CheckFieldProps } from '@/types';
 
 export function CheckField({ id, label, checked, onChange }: CheckFieldProps) {
     return (

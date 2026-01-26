@@ -1,4 +1,4 @@
-import { Field } from "@/types";
+import { Field } from '@/types';
 
 // Campos para el formulario de Expediente
 export const expedienteTecnicoFields: Record<'CARRO' | 'MOTO', Field[]> = {

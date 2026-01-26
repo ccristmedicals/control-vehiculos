@@ -1,4 +1,4 @@
-import { Field } from "@/types";
+import { Field } from '@/types';
 
 // Campos para el formulario de Piezas Revisadas
 export const piezasRevisadasFields: Record<'CARRO' | 'MOTO', Field[]> = {

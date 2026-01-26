@@ -18,7 +18,7 @@ class SqlserverService
 
         $conn = sqlsrv_connect($serverName, $connectionOptions);
 
-        if($conn) {
+        if ($conn) {
             return $conn;
         } else {
             die(print_r(sqlsrv_errors(), true));
@@ -43,7 +43,8 @@ class SqlserverService
         return $pks;
     }
 
-    public function close($conn) {
+    public function close($conn)
+    {
         sqlsrv_close($conn);
     }
 }

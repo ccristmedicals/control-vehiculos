@@ -138,7 +138,7 @@ class SurtidosController extends Controller
 
             $valorCarburador = $vehiculo->tipo === 'CARRO' ? 0.10 : 0.035;
 
-            $UltimoSurtido = Surtido::where('vehiculo_id', $vehiculo->placa)->latest()->first();
+                $valorCarburador = $vehiculo->tipo === 'CARRO' ? 0.10 : 0.035;
 
             if ($UltimoSurtido && (
                 $validatedData['kilometraje'] <= $UltimoSurtido->kilometraje

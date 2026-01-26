@@ -15,7 +15,7 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if($request->user() && $request->user()->hasRole('admin')){
+        if ($request->user() && $request->user()->hasRole('admin')) {
             return $next($request);
         }
         abort(403, 'No tienes permisos de administrador');

@@ -20,9 +20,7 @@ export default function UserCard({ usuario }: { usuario: UsuarioBasico & { docum
 
                 {documentosIncompletos && (
                     <div className="mt-3">
-                        <span
-                            className="inline-block cursor-pointer rounded-sm bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 hover:underline dark:bg-red-800 dark:text-red-300"
-                        >
+                        <span className="inline-block cursor-pointer rounded-sm bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 hover:underline dark:bg-red-800 dark:text-red-300">
                             Documentos incompletos
                         </span>
                     </div>
