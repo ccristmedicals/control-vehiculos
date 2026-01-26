@@ -1,5 +1,5 @@
 import GrupoNotificaciones from '@/components/GrupoNotificaciones';
-import NotificacionRealtime from '@/components/NotificacionRealtime';
+// import NotificacionRealtime from '@/components/NotificacionRealtime';
 import { Toaster } from '@/components/ui/sonner';
 import AppLayout from '@/layouts/app-layout';
 import { Notificacion } from '@/types';
@@ -93,7 +93,7 @@ export default function DashboardNotificaciones() {
         <AppLayout>
             <Head title="Dashboard de Notificaciones" />
             <div className="min-h-screen bg-background px-4 py-10 font-sans dark:bg-gray-900">
-                <NotificacionRealtime />
+                {/* <NotificacionRealtime /> */}
 
                 <div className="mb-10 text-center">
                     <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard de Notificaciones</h1>
