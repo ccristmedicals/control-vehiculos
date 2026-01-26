@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import FormCard from '@/components/FormCard';
 import { getAsignacionFields } from '@/constants/getAsignacionFields';
 import type { ModalAsignacionUserProps } from '@/types';
@@ -32,13 +33,29 @@ export default function ModalAsignacionUser({ isOpen, onClose, vehiculo, users, 
         router.post(`/fichaTecnica/${vehiculo.placa}/assign-user`, form, {
             preserveState: true,
             forceFormData: true,
+            // --- INICIO DE LA MODIFICACIÓN ---
             onSuccess: () => {
-                const nuevoUsuario = users.find((u) => String(u.id) === formData.user_id);
-                if (nuevoUsuario) {
-                    onSuccess?.({ id: nuevoUsuario.id, name: nuevoUsuario.name });
-                }
+                // Función helper para buscar el objeto de usuario por ID
+                const findUserById = (id: any) => {
+                    if (!id) return null;
+                    const user = users.find((u) => String(u.id) === String(id));
+                    // Devolvemos solo los datos que necesita el componente padre
+                    return user ? { id: user.id, name: user.name } : null;
+                };
+
+                // Construimos el objeto con todos los usuarios asignados
+                const assignedUsers = {
+                    principal: findUserById(formData.user_id),
+                    adicional1: findUserById(formData.user_id_adicional_1),
+                    adicional2: findUserById(formData.user_id_adicional_2),
+                    adicional3: findUserById(formData.user_id_adicional_3),
+                };
+
+                // Pasamos el objeto completo al padre
+                onSuccess?.(assignedUsers);
                 onClose();
             },
+            // --- FIN DE LA MODIFICACIÓN ---
             onError: (errors) => {
                 console.error('Error al asignar usuario:', errors);
             },
@@ -54,6 +71,7 @@ export default function ModalAsignacionUser({ isOpen, onClose, vehiculo, users, 
                     preserveState: true,
                     onSuccess: () => {
                         onSuccess?.(null);
+                        setAdicionalesVisibles(0);
                         onClose();
                     },
                     onError: (errors) => {

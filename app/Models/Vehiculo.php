@@ -85,4 +85,9 @@ class Vehiculo extends Model
     {
         return $this->hasMany(Observacion::class, 'vehiculo_id', 'placa');
     }
+
+    public function envios()
+    {
+        return $this->hasMany(Envio::class, 'vehiculo_id', 'placa');
+    }
 }

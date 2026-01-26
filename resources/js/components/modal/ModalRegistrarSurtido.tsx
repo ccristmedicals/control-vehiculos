@@ -31,6 +31,8 @@ export default function ModalRegistroSurtido({ isOpen, onClose, vehiculo }: Moda
 
     const precioTotal = Number(litros) * precioUnitario;
 
+    console.log(valorCarburador);
+
     useEffect(() => {
         if (isOpen) {
             fetch(`/fichaTecnica/${vehiculo.placa}/gasolina/info`)
@@ -64,6 +66,9 @@ export default function ModalRegistroSurtido({ isOpen, onClose, vehiculo }: Moda
             setMostrarConfirmacion(true);
             return;
         }
+
+        const confirmarKilometraje = window.confirm(`ESTAS REGISTRANDO UN SURTIDO CON ${kilometraje}KM DE KILOMETRAJE. ¿Deseas continuar?`);
+        if (!confirmarKilometraje) return;
 
         ejecutarRegistro();
     }
@@ -147,11 +152,10 @@ export default function ModalRegistroSurtido({ isOpen, onClose, vehiculo }: Moda
                                         value={formValues[field.id] as string}
                                         onChange={(e) => handleChange(field.id, e.target.value)}
                                         placeholder={field.placeholder}
-                                        className={`w-full rounded-md border px-3 py-2 text-sm ${
-                                            hasCamposIncompletos && field.required && !formValues[field.id]
-                                                ? 'border-red-500'
-                                                : 'border-gray-300 dark:border-gray-700'
-                                        } bg-white text-gray-800 shadow-sm focus:border-green-500 focus:outline-none dark:bg-gray-800 dark:text-white`}
+                                        className={`w-full rounded-md border px-3 py-2 text-sm ${hasCamposIncompletos && field.required && !formValues[field.id]
+                                            ? 'border-red-500'
+                                            : 'border-gray-300 dark:border-gray-700'
+                                            } bg-white text-gray-800 shadow-sm focus:border-green-500 focus:outline-none dark:bg-gray-800 dark:text-white`}
                                     />
                                 </div>
                             );
@@ -163,9 +167,8 @@ export default function ModalRegistroSurtido({ isOpen, onClose, vehiculo }: Moda
                             <select
                                 value={String(formValues.user_id ?? '')}
                                 onChange={(e) => handleChange('user_id', e.target.value)}
-                                className={`w-full rounded-md border px-3 py-2 text-sm ${
-                                    hasCamposIncompletos && !formValues.user_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
-                                } bg-white text-gray-800 shadow-sm focus:border-green-500 focus:outline-none dark:bg-gray-800 dark:text-white`}
+                                className={`w-full rounded-md border px-3 py-2 text-sm ${hasCamposIncompletos && !formValues.user_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-700'
+                                    } bg-white text-gray-800 shadow-sm focus:border-green-500 focus:outline-none dark:bg-gray-800 dark:text-white`}
                             >
                                 <option value="">Seleccionar</option>
                                 {conductores.map((c) => (
@@ -178,17 +181,25 @@ export default function ModalRegistroSurtido({ isOpen, onClose, vehiculo }: Moda
 
                         {/* Renderizar textarea de observación ocupando dos columnas */}
                         <div className="sm:col-span-3">
-                            <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Observación</label>
+                            <div className="flex justify-between items-center">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Observación</label>
+                                <span className={`text-xs ${(formValues.observacion as string || '').length >= 60
+                                    ? 'text-red-500 font-bold'
+                                    : 'text-gray-500 dark:text-gray-400'
+                                    }`}>
+                                    {(formValues.observacion as string || '').length}/60
+                                </span>
+                            </div>
                             <textarea
+                                maxLength={60}
                                 value={formValues.observacion as string}
                                 onChange={(e) => handleChange('observacion', e.target.value)}
                                 placeholder={fields.find((f) => f.id === 'observacion')?.placeholder}
-                                className={`w-full rounded-md border px-3 py-2 text-sm ${
-                                    hasCamposIncompletos && fields.find((f) => f.id === 'observacion')?.required && !formValues.observacion
-                                        ? 'border-red-500'
-                                        : 'border-gray-300 dark:border-gray-700'
-                                } bg-white text-gray-800 shadow-sm focus:border-green-500 focus:outline-none dark:bg-gray-800 dark:text-white`}
-                                rows={6}
+                                className={`w-full rounded-md border px-3 py-2 text-sm ${hasCamposIncompletos && fields.find((f) => f.id === 'observacion')?.required && !formValues.observacion
+                                    ? 'border-red-500'
+                                    : 'border-gray-300 dark:border-gray-700'
+                                    } bg-white text-gray-800 shadow-sm focus:border-green-500 focus:outline-none dark:bg-gray-800 dark:text-white`}
+                                rows={3}
                             />
                         </div>
                     </div>
@@ -201,7 +212,17 @@ export default function ModalRegistroSurtido({ isOpen, onClose, vehiculo }: Moda
                             <p className="mb-4">La cantidad ingresada difiere significativamente del cálculo ideal.</p>
                             <div className="flex justify-end gap-2">
                                 <button
-                                    onClick={() => setMostrarConfirmacion(false)}
+                                    onClick={() => {
+                                        setMostrarConfirmacion(false);
+
+                                        // Confirmación adicional de kilometraje
+                                        const confirmarKilometraje = window.confirm(
+                                            `Estás registrando un surtido con kilometraje ${kilometraje}. ¿Deseas continuar?`,
+                                        );
+                                        if (!confirmarKilometraje) return;
+
+                                        ejecutarRegistro();
+                                    }}
                                     className="rounded bg-gray-300 px-3 py-1 text-sm font-medium text-gray-800 hover:bg-gray-400 dark:bg-gray-700 dark:text-white"
                                 >
                                     Cancelar

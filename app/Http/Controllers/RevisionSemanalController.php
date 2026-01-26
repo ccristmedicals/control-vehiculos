@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\FlashHelper;
 use Carbon\Carbon;
 use Inertia\Inertia;
 use App\Models\Vehiculo;
@@ -19,36 +20,32 @@ class RevisionSemanalController extends Controller
     {
         $vehiculo->load('usuario');
 
-        $inicioSemana = Carbon::now()->startOfWeek(Carbon::MONDAY)->toImmutable();
-        $finalSemana = Carbon::now()->endOfWeek(Carbon::SATURDAY)->toImmutable();
+        // Obtener todas las revisiones del vehículo
+        $revisiones = RevisionesSemanales::where('vehiculo_id', $vehiculo->placa)
+            ->orderByDesc('created_at')
+            ->get()
+            ->map(function ($revision) {
+                // Cargar observación si existe
+                $revision->observacion = $revision->observacion_id
+                    ? Observacion::find($revision->observacion_id)
+                    : null;
 
-        $revisionSemanal = RevisionesSemanales::where('vehiculo_id', $vehiculo->placa)
-            ->whereBetween('created_at', [$inicioSemana, $finalSemana])
-            ->first();
+                // Cargar imágenes asociadas
+                $revision->imagenes = FotoRevisionSemanal::where('revision_semanal_id', $revision->id)
+                    ->get()
+                    ->map(function ($item) {
+                        $basePath = '/storage/uploads/fotos-semanales/';
+                        $item->imagen = $basePath . ltrim($item->imagen, '/');
+                        return $item;
+                    });
 
-        if ($revisionSemanal) {
+                return $revision;
+            });
+        // dd($revisiones);
 
-            if ($revisionSemanal->observacion_id) {
-                $observacion = Observacion::find($revisionSemanal->observacion_id);
-            }
-
-
-            $imagenes = FotoRevisionSemanal::where('revision_semanal_id', $revisionSemanal->id)
-                ->get()
-                ->map(function ($item) {
-                    $basePath = '/storage/uploads/fotos-semanales/';
-                    $item->imagen = $basePath . ltrim($item->imagen, '/');
-                    return $item;
-                });
-        }
-        // dd($imagenes);
         return Inertia::render('revisionSemanal', [
             'vehiculo' => $vehiculo,
-            'revisionSemanal' => $imagenes ?? [],
-            'observacion' => $observacion ?? null,
-            'tipoFormularioCargado' => $revisionSemanal->tipo_formulario ?? null,
-            'inicio' => $inicioSemana->isoFormat('D-M-YYYY'),
-            'final' => $finalSemana->isoFormat('D-M-YYYY'),
+            'revisiones' => $revisiones,
             'modo' => Auth::user()->hasRole('admin') ? 'admin' : 'normal',
             'flash' => [
                 'success' => session('success'),
@@ -57,20 +54,22 @@ class RevisionSemanalController extends Controller
         ]);
     }
 
+
+
     public function store(Request $request, Vehiculo $vehiculo)
     {
-        DB::beginTransaction();
-        try {
+        return FlashHelper::try(function () use ($request, $vehiculo) {
+            DB::beginTransaction();
+
             $request->validate([
                 'semanal' => 'required|array',
                 'semanal.*.tipo' => 'required|string',
-                'semanal.*.imagen' => 'required|image',
+                'semanal.*.imagen' => 'required|string',
                 'observacion' => 'nullable|string',
-                'tipo_formulario' => 'required|in:1,2'
+                'tipo_formulario' => 'required|in:1,2,3'
             ]);
 
             if ($request->observacion) {
-
                 $observacion = Observacion::create([
                     'user_id' => $request->user()->id,
                     'vehiculo_id' => $vehiculo->placa,
@@ -78,7 +77,7 @@ class RevisionSemanalController extends Controller
                     'resuelto' => false
                 ]);
 
-                if (!$observacion) throw new \Exception('Error al generar la observacion');
+                if (!$observacion) throw new \Exception('Error al generar la observación');
             }
 
             $revision = RevisionesSemanales::create([
@@ -89,33 +88,23 @@ class RevisionSemanalController extends Controller
                 'revisado' => false,
             ]);
 
-            if (!$revision) throw new \Exception('Error al generar la revision');
+            if (!$revision) throw new \Exception('Error al generar la revisión');
 
             $datos = [];
-            $multimedia = new Multimedia;
 
             foreach ($request->semanal as $renglon) {
-                $nameImage = $multimedia->guardarImagen($renglon['imagen'], 'semanal');
-                if (!$nameImage) throw new \Exception('Error al guardar la imagen de tipo: ' . $renglon['tipo']);
-
                 $datos[] = [
                     'revision_semanal_id' => $revision->id,
-                    'imagen' => $nameImage,
+                    'imagen' => $renglon['imagen'],
                     'tipo' => $renglon['tipo'],
                     'created_at' => Carbon::today(),
                     'updated_at' => Carbon::today(),
                 ];
             }
-            // dd($renglon);
+
             FotoRevisionSemanal::insert($datos);
             DB::commit();
-
-            return back()->with('success', 'Revision semanal realizada correctamente');
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            report($e);
-            return back()->with('error', 'Error: ' . $e->getMessage());
-        }
+        }, 'Revisión semanal realizada correctamente.', 'Error al registrar la revisión semanal.');
     }
 }
 

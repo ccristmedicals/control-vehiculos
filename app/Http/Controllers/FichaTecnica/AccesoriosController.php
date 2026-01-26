@@ -31,15 +31,15 @@ class AccesoriosController extends Controller
                     ]
                 );
 
-                if (in_array((int) $estado, [1, 2])) {
-                    NotificacionHelper::emitirCambioCritico(
-                        $accesorioId,
-                        (int) $estado,
-                        'accesorios',
-                        $vehiculo->placa,
-                        $userName
-                    );
-                }
+                // if (in_array((int) $estado, [1, 2])) {
+                //     NotificacionHelper::emitirCambioCritico(
+                //         $accesorioId,
+                //         (int) $estado,
+                //         'accesorios',
+                //         $vehiculo->placa,
+                //         $userName
+                //     );
+                // }
             }
         }, 'Accesorios actualizados correctamente.', 'Error al actualizar los accesorios.');
     }

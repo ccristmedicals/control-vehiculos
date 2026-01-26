@@ -7,9 +7,13 @@ import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { Eye, EyeClosed, LoaderCircle } from 'lucide-react';
+import { useState } from 'react';
 
 export default function Register() {
+    const [showPassword, setShowPassword] = useState(false);
+    const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
+
     return (
         <AuthLayout title="Create una Cuenta" description="Ingresa tus datos a continuación para crear su cuenta">
             <Head title="Register" />
@@ -54,31 +58,59 @@ export default function Register() {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password">Contraseña</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    required
-                                    tabIndex={3}
-                                    autoComplete="new-password"
-                                    name="password"
-                                    placeholder="Contraseña"
-                                    className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        required
+                                        tabIndex={3}
+                                        autoComplete="new-password"
+                                        name="password"
+                                        placeholder="Contraseña"
+                                        className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-blue-600 cursor-pointer focus:outline-none"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <Eye size={16} color='#49af4e' />
+                                        ) : (
+                                            <EyeClosed size={16} color='#49af4e' />
+                                        )}
+                                    </button>
+                                </div>
                                 <InputError message={errors.password} />
                             </div>
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password_confirmation">Confirma tu contraseña</Label>
-                                <Input
-                                    id="password_confirmation"
-                                    type="password"
-                                    required
-                                    tabIndex={4}
-                                    autoComplete="new-password"
-                                    name="password_confirmation"
-                                    placeholder="Contraseña"
-                                    className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password_confirmation"
+                                        type={showPasswordConfirmation ? "text" : "password"}
+                                        required
+                                        tabIndex={4}
+                                        autoComplete="new-password"
+                                        name="password_confirmation"
+                                        placeholder="Contraseña"
+                                        className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-blue-600 cursor-pointer focus:outline-none"
+                                        tabIndex={-1}
+                                    >
+                                        {showPasswordConfirmation ? (
+                                            <Eye size={16} color='#49af4e' />
+                                        ) : (
+                                            <EyeClosed size={16} color='#49af4e' />
+                                        )}
+                                    </button>
+                                </div>
                                 <InputError message={errors.password_confirmation} />
                             </div>
 

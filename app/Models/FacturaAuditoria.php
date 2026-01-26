@@ -18,6 +18,7 @@ class FacturaAuditoria extends Model
         'aprobado',
         'cubre',
         'cubre_usuario',
+        'kilometraje'
     ];
 
     public function renglones()

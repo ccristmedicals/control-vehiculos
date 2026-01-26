@@ -23,15 +23,15 @@ class PiezasController
                         ['estado' => $estado, 'user_id' => $request->user()->id]
                     );
 
-                    if (in_array((int) $estado, [1, 2])) {
-                        NotificacionHelper::emitirCambioCritico(
-                            $pieza_id,
-                            (int) $estado,
-                            'piezas',
-                            $vehiculo->placa,
-                            $userName
-                        );
-                    }
+                    // if (in_array((int) $estado, [1, 2])) {
+                    //     NotificacionHelper::emitirCambioCritico(
+                    //         $pieza_id,
+                    //         (int) $estado,
+                    //         'piezas',
+                    //         $vehiculo->placa,
+                    //         $userName
+                    //     );
+                    // }
                 }
             }
         }, 'Piezas actualizadas correctamente.', 'Error al actualizar las piezas.');

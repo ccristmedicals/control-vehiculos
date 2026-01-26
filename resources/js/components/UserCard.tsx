@@ -1,10 +1,12 @@
 import { UsuarioBasico } from '@/types';
 import { router } from '@inertiajs/react';
 
-export default function UserCard({ usuario }: { usuario: UsuarioBasico }) {
+export default function UserCard({ usuario }: { usuario: UsuarioBasico & { documentos_completos?: boolean } }) {
+    const documentosIncompletos = usuario.documentos_completos === false;
+
     return (
         <div
-            className="group flex h-[180px] flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-md transition duration-200 hover:shadow-lg hover:ring-2 hover:ring-blue-500 dark:border-gray-700 dark:bg-gray-800"
+            className="group flex h-[200px] flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-md transition duration-200 hover:shadow-lg hover:ring-2 hover:ring-blue-500 dark:border-gray-700 dark:bg-gray-800"
             onClick={() => router.get(`/perfil/${usuario.id}`)}
         >
             <div>
@@ -15,6 +17,16 @@ export default function UserCard({ usuario }: { usuario: UsuarioBasico }) {
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                     <span className="font-medium">ID interno:</span> {usuario.id}
                 </p>
+
+                {documentosIncompletos && (
+                    <div className="mt-3">
+                        <span
+                            className="inline-block cursor-pointer rounded-sm bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 hover:underline dark:bg-red-800 dark:text-red-300"
+                        >
+                            Documentos incompletos
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="mt-4 text-right">

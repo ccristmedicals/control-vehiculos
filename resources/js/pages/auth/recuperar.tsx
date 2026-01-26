@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import NewPasswordController from '@/actions/App/Http/Controllers/Auth/NewPasswordController';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { Eye, EyeClosed, LoaderCircle } from 'lucide-react';
 
 interface LoginProps {
     status?: string;
@@ -13,6 +14,7 @@ interface LoginProps {
 }
 
 export default function Login({ status }: LoginProps) {
+    const [showPassword, setShowPassword] = useState(false);
     return (
         <AuthLayout title="Recupera tu contraseña" description="Ingresa tus datos para recuperar contraseña">
             <Head title="Recuperar" />
@@ -23,7 +25,7 @@ export default function Login({ status }: LoginProps) {
                         <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="email" className="font-semibold text-gray-700 dark:text-gray-300">
-                                    INGRESE SU CÉDULA DE IDENTIDAD
+                                    Ingresa tu cédula de identidad
                                 </Label>
                                 <Input
                                     id="email"
@@ -42,19 +44,33 @@ export default function Login({ status }: LoginProps) {
                             <div className="grid gap-2">
                                 <div className="flex items-center">
                                     <Label htmlFor="password" className="font-semibold text-gray-700 dark:text-gray-300">
-                                        INGRESE SU NUEVA CONTRASEÑA
+                                        Ingresa tu nueva contraseña
                                     </Label>
                                 </div>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Contraseña"
-                                    className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        name="password"
+                                        required
+                                        tabIndex={2}
+                                        autoComplete="current-password"
+                                        placeholder="Contraseña"
+                                        className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-blue-600 cursor-pointer focus:outline-none"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <Eye size={16} color='#49af4e' />
+                                        ) : (
+                                            <EyeClosed size={16} color='#49af4e' />
+                                        )}
+                                    </button>
+                                </div>
                                 <InputError message={errors.password} />
                             </div>
 

@@ -94,7 +94,7 @@ const commonFields: Field[] = [
     },
     {
         id: 'tren_ct_delantero_izq_archivo_3',
-        label: 'Amortiguador y Espiral, Bujes de Suspecion',
+        label: 'Amortiguador y Espiral Delantero Izquierdo',
         type: 'file',
         required: true,
     },
@@ -113,7 +113,7 @@ const commonFields: Field[] = [
     },
     {
         id: 'tren_ct_delantero_der_archivo_2',
-        label: 'Amortiguador y Espiral',
+        label: 'Amortiguador y Espiral Delantero Derecho',
         type: 'file',
         required: true,
     },
@@ -126,7 +126,7 @@ const commonFields: Field[] = [
     // TREN TRASERO IZQUIERDO
     {
         id: 'tren_ct_trasero_izq_archivo_1',
-        label: 'Amortiguador, Espiral',
+        label: 'Amortiguador, Espiral Trasero Izquierdo',
         type: 'file',
         required: true,
     },
@@ -139,7 +139,7 @@ const commonFields: Field[] = [
     // TREN TRASERO DERECHO
     {
         id: 'tren_ct_trasero_der_archivo_1',
-        label: 'Amortiguador, Espiral',
+        label: 'Amortiguador, Espiral Trasero Derecho',
         type: 'file',
         required: true,
     },

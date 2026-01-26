@@ -87,11 +87,11 @@ class AsignacionesController extends Controller
             $vehiculo->user_id_adicional_3 = $validatedData['user_id_adicional_3'] ?? null;
             $vehiculo->save();
 
-            NotificacionHelper::emitirAsignacionUsuario(
-                $vehiculo->placa,
-                $admin->name,
-                $nuevoUsuario->name
-            );
+            // NotificacionHelper::emitirAsignacionUsuario(
+            //     $vehiculo->placa,
+            //     $admin->name,
+            //     $nuevoUsuario->name
+            // );
         }, 'Usuario asignado correctamente.', 'Error al asignar el usuario.');
     }
 

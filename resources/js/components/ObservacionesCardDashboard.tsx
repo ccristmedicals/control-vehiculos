@@ -8,7 +8,7 @@ interface Props {
 }
 
 export default function ObservacionesCardDashboard({ observacion }: Props) {
-    const { observacion: texto, resuelto, fecha_creacion, vehiculo } = observacion;
+    const { observacion: texto, resuelto, fecha_creacion, vehiculo, user } = observacion;
 
     const irAFichaObservaciones = () => {
         if (vehiculo?.placa) {
@@ -35,7 +35,7 @@ export default function ObservacionesCardDashboard({ observacion }: Props) {
                     ) : (
                         <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
                     )}
-                    <h2 className={clsx('text-sm font-semibold', resuelto ? 'text-gray-500 dark:text-gray-400' : 'text-gray-800 dark:text-white')}>
+                    <h2 className={clsx('text-sm font-semibold', resuelto ? 'text-gray-800 dark:text-white' : 'text-gray-800 dark:text-white')}>
                         {vehiculo?.modelo} ({vehiculo?.placa})
                     </h2>
                 </div>
@@ -49,8 +49,17 @@ export default function ObservacionesCardDashboard({ observacion }: Props) {
                 </span>
             </div>
 
-            <p className={clsx('mt-2 line-clamp-2 text-xs', resuelto ? 'text-gray-400 dark:text-gray-500' : 'text-gray-600 dark:text-gray-300')}>
+            <p className={clsx('mt-2 line-clamp-2 text-xs', resuelto ? 'text-gray-400 dark:text-gray-300' : 'text-gray-600 dark:text-gray-300')}>
                 {texto}
+            </p>
+
+            <p
+                className={clsx(
+                    'mt-1 text-[11px] font-semibold italic',
+                    resuelto ? 'text-gray-400 dark:text-gray-400' : 'text-gray-500 dark:text-gray-400',
+                )}
+            >
+                Creado por: {user?.name ?? 'Usuario desconocido'}
             </p>
 
             <div className={clsx('mt-2 text-right text-[11px]', resuelto ? 'text-gray-400 dark:text-gray-500' : 'text-gray-500 dark:text-gray-400')}>

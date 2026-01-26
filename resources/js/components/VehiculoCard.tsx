@@ -6,6 +6,8 @@ export default function VehiculoCard({ vehiculo }: { vehiculo: VehiculoCompleto 
         observaciones_no_resueltas = 0,
         imagenes_factura_pendientes = 0,
         factura_pendiente = 0,
+        envios_pendientes = 0,
+        revision_diaria = true,
         usuario,
         usuario_adicional1,
         usuario_adicional2,
@@ -15,7 +17,7 @@ export default function VehiculoCard({ vehiculo }: { vehiculo: VehiculoCompleto 
 
     return (
         <div
-            className="group flex h-[280px] cursor-pointer flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-md transition duration-200 hover:shadow-lg hover:ring-2 hover:ring-[#49af4e] dark:border-gray-700 dark:bg-gray-800"
+            className="group flex h-[300px] cursor-pointer flex-col justify-between rounded-xl border border-gray-200 bg-white p-4 shadow-md transition duration-200 hover:shadow-lg hover:ring-2 hover:ring-[#49af4e] dark:border-gray-700 dark:bg-gray-800"
             onClick={() => router.get(`/fichaTecnica/${vehiculo.placa}`)}
         >
             <div className="flex items-center gap-4">
@@ -77,6 +79,30 @@ export default function VehiculoCard({ vehiculo }: { vehiculo: VehiculoCompleto 
                                 className="cursor-pointer rounded-sm bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-700 hover:underline dark:bg-yellow-800 dark:text-yellow-300"
                             >
                                 {factura_pendiente} factura por auditar
+                            </button>
+                        )}
+                        {revision_diaria === false && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.get(`/fichaTecnica/${vehiculo.placa}/revisionFluidos`);
+                                }}
+                                className="cursor-pointer rounded-sm bg-red-100 px-2 py-1 text-xs font-semibold text-red-700 hover:underline dark:bg-red-800 dark:text-red-300"
+                            >
+                                revision diaria pendiente
+                            </button>
+                        )}
+                        {envios_pendientes > 0 && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    router.get(`/fichaTecnica/${vehiculo.placa}/envios`);
+                                }}
+                                className="cursor-pointer rounded-sm bg-blue-100 px-2 py-1 text-xs font-semibold text-blue-700 hover:underline dark:bg-blue-800 dark:text-blue-300"
+                            >
+                                {envios_pendientes} envio
+                                {envios_pendientes > 1 ? 'es' : ''} pendiente
+                                {envios_pendientes > 1 ? 's' : ''}
                             </button>
                         )}
                     </div>

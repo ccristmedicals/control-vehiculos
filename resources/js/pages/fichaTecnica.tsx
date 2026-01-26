@@ -127,24 +127,28 @@ export default function fichaTecnica({
                         Ficha Técnica del Vehículo {vehiculoActual.modelo}
                     </h1>
                     <div className="mt-2 text-sm text-gray-700 dark:text-gray-300">
-                        <span className="font-semibold">Encargados actuales:</span>{' '}
-                        {vehiculoActual.usuario ? (
-                            <span className="ml-2 rounded-full bg-green-100 px-2 py-0.5 font-medium text-green-800">
-                                {vehiculoActual.usuario.name} (Principal)
-                            </span>
-                        ) : (
-                            <span className="ml-2 rounded-full bg-red-100 px-2 py-0.5 font-medium text-red-500">Sin asignar</span>
-                        )}
-                        {[vehiculoActual.usuario_adicional1, vehiculoActual.usuario_adicional2, vehiculoActual.usuario_adicional3]
-                            .filter(Boolean)
-                            .map((usuario, index) => (
-                                <span
-                                    key={usuario.id}
-                                    className="ml-2 rounded-full bg-blue-100 px-2 py-0.5 font-medium text-blue-800 dark:bg-blue-200 dark:text-blue-900"
-                                >
-                                    {usuario.name} (Adicional)
+                        <span className="mb-2 block text-center font-semibold">Encargados actuales:</span>
+
+                        <div className="flex flex-wrap justify-center gap-2">
+                            {vehiculoActual.usuario ? (
+                                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">
+                                    {vehiculoActual.usuario.name} (Principal)
                                 </span>
-                            ))}
+                            ) : (
+                                <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-medium text-red-500">Sin asignar</span>
+                            )}
+
+                            {[vehiculoActual.usuario_adicional1, vehiculoActual.usuario_adicional2, vehiculoActual.usuario_adicional3]
+                                .filter(Boolean)
+                                .map((usuario) => (
+                                    <span
+                                        key={usuario.id}
+                                        className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-800 dark:bg-blue-200 dark:text-blue-900"
+                                    >
+                                        {usuario.name} (Adicional)
+                                    </span>
+                                ))}
+                        </div>
                     </div>
 
                     {isAdmin && (
@@ -196,8 +200,27 @@ export default function fichaTecnica({
                             vehiculo={vehiculoActual}
                             users={users}
                             isAdmin={isAdmin}
-                            onSuccess={(nuevoUsuario: any) => {
-                                setVehiculoActual((prev: any) => ({ ...prev, usuario: nuevoUsuario }));
+                            onSuccess={(payload: any) => {
+                                if (payload === null) {
+                                    // Caso 1: Se desasignaron todos
+                                    setVehiculoActual((prev: any) => ({
+                                        ...prev,
+                                        usuario: null,
+                                        usuario_adicional1: null,
+                                        usuario_adicional2: null,
+                                        usuario_adicional3: null,
+                                    }));
+                                } else {
+                                    // Caso 2: Se asignaron usuarios
+                                    // (payload es { principal, adicional1, adicional2, adicional3 })
+                                    setVehiculoActual((prev: any) => ({
+                                        ...prev,
+                                        usuario: payload.principal,
+                                        usuario_adicional1: payload.adicional1,
+                                        usuario_adicional2: payload.adicional2,
+                                        usuario_adicional3: payload.adicional3,
+                                    }));
+                                }
                             }}
                         />
                     )}

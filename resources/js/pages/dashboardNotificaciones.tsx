@@ -121,7 +121,7 @@ export default function DashboardNotificaciones() {
                 </div>
 
                 {modo === 'admin' && notificaciones.length > 0 && (
-                    <div className="mb-6 text-right">
+                    <div className="mb-6 text-center">
                         <button
                             onClick={() => {
                                 toast('¿Marcar todas como leídas?', {

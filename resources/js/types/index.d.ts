@@ -62,7 +62,7 @@ export interface FileField {
 export interface Field {
     id: string;
     label: string;
-    type: 'text' | 'select' | 'date' | 'file' | 'checkbox' | 'number' | 'textarea';
+    type: 'text' | 'select' | 'date' | 'file' | 'checkbox' | 'number' | 'textarea' | 'search-select';
     placeholder?: string;
     options?: { value: string; label: string }[];
     required: boolean;
@@ -90,7 +90,7 @@ export interface FormCardProps {
     title?: string;
     fields: Field[];
     buttonText?: string;
-    formType?: 'expediente' | 'permisologia' | 'accesorios' | 'piezas' | 'revisionFluidos' | 'asignacion' | 'surtido' | 'semanal';
+    formType?: 'expediente' | 'permisologia' | 'accesorios' | 'piezas' | 'revisionFluidos' | 'asignacion' | 'surtido' | 'semanal' | 'solicitud';
     onChange?: (data: Record<string, any>) => void;
     onSubmit?: (formData: Record<string, string | boolean | File | null>) => void;
     expediente?: Record<string | number, string | boolean | File | null>;
@@ -135,6 +135,13 @@ interface TextFieldProps {
     onChange: (id: string, value: string) => void;
 }
 
+export type AssignedUserPayload = {
+    principal: UsuarioAsignado | null;
+    adicional1: UsuarioAsignado | null;
+    adicional2: UsuarioAsignado | null;
+    adicional3: UsuarioAsignado | null;
+};
+
 export interface ModalAsignacionUserProps {
     isOpen: boolean;
     onClose: () => void;
@@ -146,7 +153,7 @@ export interface ModalAsignacionUserProps {
         id: string | number;
         name: string;
     }[];
-    onSuccess?: (usuario: { id: string | number; name: string } | null) => void;
+    onSuccess?: (payload: AssignedUserPayload | null) => void;
     isAdmin: boolean;
 }
 
@@ -239,12 +246,6 @@ export interface UsuarioBasico {
     vencimiento_licencia?: string;
     foto_certificado_medico?: string;
     vencimiento_certificado_medico?: string;
-    foto_seguro_civil?: string;
-    vencimiento_seguro_civil?: string;
-    foto_carnet_circulacion?: string;
-    vencimiento_carnet_circulacion?: string;
-    foto_solvencia?: string;
-    vencimiento_solvencia?: string;
 }
 
 export interface UserInterface {
@@ -276,10 +277,12 @@ export type VehiculoCompleto = VehiculoConductor & {
     usuario_adicional1?: UsuarioAsignado | null;
     usuario_adicional2?: UsuarioAsignado | null;
     usuario_adicional3?: UsuarioAsignado | null;
+    revision_diaria?: boolean;
     imagen_url?: string;
     observaciones_no_resueltas?: number;
     imagenes_factura_pendientes?: number;
     factura_pendiente?: number;
+    envios_pendientes?: number;
 };
 
 export interface VehiculoData {
@@ -287,6 +290,9 @@ export interface VehiculoData {
     placa: string;
     modelo: string;
     usuario?: { name: string } | null;
+    usuario_adicional1?: { name: string; id: any } | null;
+    usuario_adicional2?: { name: string; id: any } | null;
+    usuario_adicional3?: { name: string; id: any } | null;
 }
 
 // Facturas
@@ -352,6 +358,7 @@ export type ModalDetalleFacturaProps = {
     factura: FacturaModalData;
     renglones: Renglon[];
     auditados: boolean;
+    kilometraje: number;
     vehiculo: {
         placa: string;
         conductor: any;
@@ -374,6 +381,7 @@ export type FacturaModalData = {
     supervisores: any;
     observaciones_admin: string;
     aprobado: boolean;
+    kilometraje: number;
     observaciones_res: string;
     observacion_res: string;
     descripcion: string;
@@ -498,4 +506,26 @@ interface Pista {
     user?: {
         name: string;
     };
+}
+
+// Envios
+
+export interface Envio {
+    id: number;
+    vehiculo_id: string;
+    user_id: number;
+    admin_id: number | null;
+    descripcion: string;
+    estado: 'pendiente' | 'en_camino' | 'recibido' | 'rechazado';
+    foto_envio: string | null;
+    foto_recibo: string | null;
+    created_at: string;
+    updated_at: string;
+    user: UserInterface;
+    admin: UserInterface | null;
+}
+
+export interface PagePropsEnvio extends PageProps {
+    envios: Envio[];
+    auth: Auth;
 }

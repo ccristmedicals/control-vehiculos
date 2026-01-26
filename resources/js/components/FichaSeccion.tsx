@@ -3,7 +3,7 @@ import { FichaSeccionProps } from '@/types';
 import { Disclosure, DisclosureButton, DisclosurePanel } from '@headlessui/react';
 import { PanelTopOpen } from 'lucide-react';
 
-export default function FichaSeccion({ title, fields, formType, expediente, onSubmit, onChange }: FichaSeccionProps) {
+export default function FichaSeccion({ title, fields, formType, expediente, onSubmit, onChange, loading }: FichaSeccionProps) {
     return (
         <Disclosure as="div" className="mx-auto w-full max-w-5xl rounded-xl border bg-gray-100 shadow-lg dark:bg-gray-800">
             {({ open }) => (
@@ -13,7 +13,14 @@ export default function FichaSeccion({ title, fields, formType, expediente, onSu
                         <PanelTopOpen className={`h-5 w-5 transform transition-transform duration-200 ${open ? 'rotate-180' : 'rotate-0'}`} />
                     </DisclosureButton>
                     <DisclosurePanel className="px-6 pt-2 pb-6">
-                        <FormCard fields={fields} formType={formType} expediente={expediente || {}} onSubmit={onSubmit} onChange={onChange} />
+                        <FormCard
+                            fields={fields}
+                            formType={formType}
+                            expediente={expediente || {}}
+                            onSubmit={onSubmit}
+                            onChange={onChange}
+                            loading={loading}
+                        />
                     </DisclosurePanel>
                 </>
             )}

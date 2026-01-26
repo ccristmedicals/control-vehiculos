@@ -70,45 +70,45 @@ const commonFields: Field[] = [
     // TREN DELANTERO IZQUIERDO
     {
         id: 'tren_sp_delantero_izq_archivo_1',
-        label: 'Terminal, Muñon, Bieleta, Tripode, Bujes',
+        label: 'Terminal, Muñon, Bieleta, Tripode, Bujes Izquierdo',
         type: 'file',
         required: true,
     },
     {
         id: 'tren_sp_delantero_izq_archivo_2',
-        label: 'Amortiguador y Espiral',
+        label: 'Amortiguador y Espiral Delantero Izquierdo',
         type: 'file',
         required: true,
     },
     {
         id: 'tren_sp_delantero_izq_archivo_3',
-        label: 'Brazo Axial, Coca, Triceta',
+        label: 'Brazo Axial, Coca, Triceta Izquierdo',
         type: 'file',
         required: true,
     },
     // TREN DELANTERO DERECHO
     {
         id: 'tren_sp_delantero_der_archivo_1',
-        label: 'Terminal, Muñon, Bieleta, Tripode, Bujes',
+        label: 'Terminal, Muñon, Bieleta, Tripode, Bujes Derecho',
         type: 'file',
         required: true,
     },
     {
         id: 'tren_sp_delantero_der_archivo_2',
-        label: 'Amortiguador y Espiral',
+        label: 'Amortiguador y Espiral Delantero Derecho',
         type: 'file',
         required: true,
     },
     {
         id: 'tren_sp_delantero_der_archivo_3',
-        label: 'Brazo Axial, Coca, Triceta',
+        label: 'Brazo Axial, Coca, Triceta Derecho',
         type: 'file',
         required: true,
     },
     // TREN TRASERO IZQUIERDO
     {
         id: 'tren_sp_trasero_izq_archivo_1',
-        label: 'Amortiguador, Espiral',
+        label: 'Amortiguador, Espiral Trasero Izquierdo',
         type: 'file',
         required: true,
     },
@@ -121,7 +121,7 @@ const commonFields: Field[] = [
     // TREN TRASERO DERECHO
     {
         id: 'tren_sp_trasero_der_archivo_1',
-        label: 'Amortiguador, Espiral',
+        label: 'Amortiguador, Espiral Trasero Derecho',
         type: 'file',
         required: true,
     },

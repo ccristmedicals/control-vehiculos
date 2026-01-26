@@ -8,7 +8,8 @@ export default function PerfilUsuario() {
     const { usuario } = usePage<{ usuario: UsuarioBasico }>().props;
 
     const [formData, setFormData] = useState<Record<string, string | File | null>>({});
-    const [submitting, setSubmitting] = useState(false);
+    const [submitting, setSubmitting] = useState(false); // 1. ESTADO PARA CONTROLAR EL MODAL DE IMAGEN
+    const [imagenModal, setImagenModal] = useState<string | null>(null);
 
     const documentos = [
         { label: 'Cédula', key: 'cedula' },
@@ -66,13 +67,13 @@ export default function PerfilUsuario() {
 
                         <div className="rounded-lg border bg-gray-100 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-700">
                             <h2 className="mb-1 text-center text-sm font-medium text-gray-500 dark:text-gray-400">Cédula</h2>
-                            <p className="text-center text-lg font-semibold text-gray-900 dark:text-white">{usuario.email}</p>
+                            <p className="text-center text-lg font-semibold text-gray-900 dark:text-white">{usuario.email}</p>{' '}
                         </div>
                     </div>
-
                     {/* Documentos */}
                     <form onSubmit={handleSubmit} encType="multipart/form-data">
                         <h2 className="mb-6 text-center text-xl font-bold text-gray-800 dark:text-white">Documentación</h2>
+
                         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                             {documentos.map(({ label, key }) => {
                                 const foto = usuario[`foto_${key}` as keyof UsuarioBasico] as string | undefined;
@@ -82,11 +83,11 @@ export default function PerfilUsuario() {
                                     <div key={key} className="rounded-lg border bg-gray-50 p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                                         <div className="mb-3 flex items-center justify-between">
                                             <h3 className="text-md font-semibold text-gray-900 dark:text-white">{label}</h3>
+
                                             {vencimiento && (
                                                 <span
-                                                    className={`rounded-full px-3 py-1 text-xs font-medium ${
-                                                        vencido ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                                                    }`}
+                                                    className={`rounded-full px-3 py-1 text-xs font-medium ${vencido ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                                                        }`}
                                                 >
                                                     {vencido ? 'Vencido' : 'Vigente'}
                                                 </span>
@@ -95,9 +96,12 @@ export default function PerfilUsuario() {
 
                                         {foto ? (
                                             <img
+                                                // Manejador de clic añadido aquí
+                                                onClick={() => setImagenModal(foto)}
                                                 src={foto}
                                                 alt={`Documento ${label}`}
-                                                className="mb-3 max-h-40 w-full rounded object-contain shadow"
+                                                // Estilos de clic e interacción añadidos
+                                                className="mb-3 max-h-40 w-full cursor-pointer rounded object-contain shadow transition-transform hover:scale-[1.02]"
                                             />
                                         ) : (
                                             <p className="mb-3 text-sm text-gray-500 italic dark:text-gray-400">No cargado</p>
@@ -108,6 +112,7 @@ export default function PerfilUsuario() {
                                                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
                                                     Reemplazar documento
                                                 </label>
+
                                                 <input
                                                     type="file"
                                                     accept="image/*"
@@ -120,6 +125,7 @@ export default function PerfilUsuario() {
                                                 <label className="block text-sm font-medium text-gray-600 dark:text-gray-300">
                                                     Nueva fecha de vencimiento
                                                 </label>
+
                                                 <input
                                                     type="date"
                                                     onChange={(e) => handleDateChange(key, e.target.value)}
@@ -136,15 +142,13 @@ export default function PerfilUsuario() {
                                 );
                             })}
                         </div>
-
                         {/* Botón de acción */}
                         <div className="mt-10 flex justify-end">
                             <button
                                 type="submit"
                                 disabled={submitting}
-                                className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white shadow-md transition-transform duration-200 ${
-                                    submitting ? 'cursor-not-allowed bg-gray-400' : 'bg-[#49af4e] hover:scale-105 hover:bg-green-700'
-                                }`}
+                                className={`inline-flex items-center gap-2 rounded-full px-6 py-3 text-base font-semibold text-white shadow-md transition-transform duration-200 ${submitting ? 'cursor-not-allowed bg-gray-400' : 'bg-[#49af4e] hover:scale-105 hover:bg-green-700'
+                                    }`}
                             >
                                 {submitting ? (
                                     <>
@@ -161,6 +165,20 @@ export default function PerfilUsuario() {
                     </form>
                 </div>
             </div>
+            {/* MODAL DE IMAGEN AMPLIADA */}
+            {imagenModal && (
+                <div
+                    className="bg-opacity-70 fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+                    onClick={() => setImagenModal(null)}
+                >
+                    <img
+                        src={imagenModal}
+                        alt="Documento ampliado"
+                        className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </AppLayout>
     );
 }

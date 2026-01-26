@@ -8,7 +8,8 @@ import { Label } from '@/components/ui/label';
 import AuthLayout from '@/layouts/auth-layout';
 import { register } from '@/routes';
 import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { Eye, EyeClosed, LoaderCircle } from 'lucide-react';
+import { useState } from 'react';
 
 interface LoginProps {
     status?: string;
@@ -16,6 +17,7 @@ interface LoginProps {
 }
 
 export default function Login({ status }: LoginProps) {
+    const [showPassword, setShowPassword] = useState(false);
     return (
         <AuthLayout title="Accede a tu cuenta" description="Ingresa tus datos para continuar">
             <Head title="Acceder" />
@@ -48,16 +50,30 @@ export default function Login({ status }: LoginProps) {
                                         Contraseña
                                     </Label>
                                 </div>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    name="password"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="current-password"
-                                    placeholder="Contraseña"
-                                    className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
-                                />
+                                <div className="relative">
+                                    <Input
+                                        id="password"
+                                        type={showPassword ? "text" : "password"}
+                                        name="password"
+                                        required
+                                        tabIndex={2}
+                                        autoComplete="current-password"
+                                        placeholder="Contraseña"
+                                        className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-blue-600 cursor-pointer focus:outline-none"
+                                        tabIndex={-1}
+                                    >
+                                        {showPassword ? (
+                                            <Eye size={16} color='#49af4e' />
+                                        ) : (
+                                            <EyeClosed size={16} color='#49af4e' />
+                                        )}
+                                    </button>
+                                </div>
                                 <InputError message={errors.password} />
                             </div>
 
@@ -87,9 +103,9 @@ export default function Login({ status }: LoginProps) {
                         </div>
 
                         <div className="text-center text-sm text-muted-foreground">
-                            Resetear contraseña{' '}
+                            Olvidaste tu contraseña?{' '}
                             <TextLink href={'reset-password'} tabIndex={5} className="text-blue-600 hover:underline">
-                                Resetear
+                                Cambiar contraseña
                             </TextLink>
                         </div>
                     </>

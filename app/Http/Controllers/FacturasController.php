@@ -128,6 +128,7 @@ class FacturasController extends Controller
                 'supervisores' => User::role('admin')->whereNotIn('email', [29960819, 26686507, 25025870])->select('id', 'name')->get(),
                 'cubre' => $facturaAuditada->cubre ?? true,
                 'cubre_usuario' => $usuarioQuePaga,
+                'kilometraje' => $facturaAuditada->kilometraje ?? null
             ],
             'renglones' => $renglones,
             'auditados' => $auditados,
@@ -161,6 +162,7 @@ class FacturasController extends Controller
             $request->validate([
                 'observacion' => 'nullable|string',
                 'imagenes.*' => 'image|max:5120',
+                'kilometraje' => 'required|numeric'
             ]);
 
             FacturaAuditoria::create([
@@ -168,6 +170,7 @@ class FacturasController extends Controller
                 'vehiculo_id' => $factura->co_cli,
                 'user_id' => $request->user()->id,
                 'observaciones_res' => $request->input('observacion'),
+                'kilometraje' => $request->kilometraje
             ]);
 
             $datos = [];
@@ -192,12 +195,12 @@ class FacturasController extends Controller
 
             RenglonAuditoria::insert($datos);
 
-            NotificacionHelper::emitirImagenFacturaSubida(
-                $factura->co_cli,
-                $request->user()->name,
-                $factura->fact_num,
-                count($imagenes)
-            );
+            // NotificacionHelper::emitirImagenFacturaSubida(
+            //     $factura->co_cli,
+            //     $request->user()->name,
+            //     $factura->fact_num,
+            //     count($imagenes)
+            // );
 
             DB::commit();
         }, 'Auditoría registrada con éxito.', 'Error al registrar la auditoría.');

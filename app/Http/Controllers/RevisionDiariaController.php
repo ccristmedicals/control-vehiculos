@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\NotificacionHelper;
 use App\Helpers\FlashHelper;
 use App\Models\RevisionesDiarias;
 use App\Models\Vehiculo;
@@ -16,32 +15,65 @@ class RevisionDiariaController extends Controller
 {
     public function index(Request $request, Vehiculo $vehiculo)
     {
+        Carbon::setLocale('es');
         $inicioSemana = Carbon::now()->startOfWeek(Carbon::MONDAY)->toImmutable();
         $finalSemana = Carbon::now()->endOfWeek(Carbon::FRIDAY)->toImmutable();
 
-        $revisionDiaria = RevisionesDiarias::where('vehiculo_id', $vehiculo->placa)
-            ->whereBetween('fecha_creacion', [$inicioSemana, $finalSemana])
-            ->get();
+        // 1. OBTENER TODO (Ordenado por fecha descendente)
+        $todasLasRevisiones = RevisionesDiarias::where('vehiculo_id', $vehiculo->placa)
+            ->orderByDesc('fecha_creacion')
+            ->get()
+            ->map(function ($revision) {
+                if ($revision->imagen) {
+                    $revision->imagen = '/storage/uploads/fotos-diarias/' . ltrim($revision->imagen, '/');
+                }
+                return $revision;
+            });
 
-        $revisionesDiarias = [];
-        foreach ($revisionDiaria as $revision) {
-            $dia = strtolower(Carbon::parse($revision->fecha_creacion)->isoFormat('dddd'));
+        // 2. DATOS PARA EL FORMULARIO (Solo Semana Actual)
+        $revisionesSemanaActual = [];
 
-            if (!isset($revisionesDiarias[$dia])) {
-                $revisionesDiarias[$dia] = [];
+        // Filtramos para obtener SOLO lo de esta semana
+        $revisionesDeEstaSemana = $todasLasRevisiones->filter(function ($rev) use ($inicioSemana, $finalSemana) {
+            $fecha = Carbon::parse($rev->fecha_creacion);
+            return $fecha->between($inicioSemana, $finalSemana);
+        });
+
+        foreach ($revisionesDeEstaSemana as $revision) {
+            // Nota: Usamos locale('en') aquí para que coincida con las keys de React (monday, tuesday...)
+            $dia = strtolower(Carbon::parse($revision->fecha_creacion)->locale('en')->isoFormat('dddd'));
+            if (!isset($revisionesSemanaActual[$dia])) {
+                $revisionesSemanaActual[$dia] = [];
             }
-
-            if ($revision->imagen) {
-                $revision->imagen = '/storage/uploads/fotos-diarias/' . ltrim($revision->imagen, '/');
-            }
-
-            $revisionesDiarias[$dia][] = $revision;
+            $revisionesSemanaActual[$dia][] = $revision;
         }
+
+        // 3. DATOS PARA EL HISTORIAL (EXCLUYENDO SEMANA ACTUAL)
+        $historialAgrupado = $todasLasRevisiones
+            // --- NUEVO FILTRO AQUÍ ---
+            // "Rechazamos" (excluimos) las revisiones que estén dentro de la semana actual
+            // porque esas ya se muestran arriba en el formulario.
+            ->reject(function ($rev) use ($inicioSemana, $finalSemana) {
+                return Carbon::parse($rev->fecha_creacion)->between($inicioSemana, $finalSemana);
+            })
+            // -------------------------
+            ->groupBy(function ($item) {
+                return Carbon::parse($item->fecha_creacion)->format('Y-m-d');
+            })
+            ->map(function ($items, $fecha) {
+                return [
+                    'fecha' => $fecha,
+                    'fecha_humana' => ucfirst(Carbon::parse($fecha)->locale('es')->isoFormat('dddd D [de] MMMM YYYY')),
+                    'items' => $items
+                ];
+            })
+            ->values();
 
         return Inertia::render('revisionFluidos', [
             'vehiculoId' => $vehiculo->placa,
             'vehiculo' => $vehiculo,
-            'revisionDiaria' => $revisionesDiarias,
+            'revisionDiaria' => $revisionesSemanaActual,
+            'historial' => $historialAgrupado,
             'modo' => Auth::user()->hasRole('admin') ? 'admin' : 'normal',
             'flash' => [
                 'success' => session('success'),
@@ -60,45 +92,25 @@ class RevisionDiariaController extends Controller
                 'fluidos.*.dia' => 'nullable|string',
                 'fluidos.*.nivel_fluido' => 'nullable|string',
                 'fluidos.*.revisado' => 'nullable|string',
-                'fluidos.*.imagen' => 'nullable|image|max:5120',
+                'fluidos.*.imagen' => 'nullable|string',
             ]);
 
             $datos = [];
+
             foreach ($validatedData['fluidos'] as $revision) {
-                if (!$revision['revisado']) {
+                if (!$revision['revisado'])
                     continue;
-                }
-                
-                if ($revision['revisado'] && !array_key_exists('imagen', $revision)) {
+                if ($revision['revisado'] && !array_key_exists('imagen', $revision))
                     continue;
-                }
-                
-                $multimedia = new Multimedia;
-                $nameImage = $multimedia->guardarImagen($revision['imagen'], 'diario');
-                
-                if (!$nameImage) {
-                    throw new \Exception('Error al guardar la imagen');
-                }
-                
-                $nivel = $revision['nivel_fluido'];
-                $tipo = $revision['tipo'];
-                
-                if ($nivel === '0') {
-                    NotificacionHelper::emitirNivelBajo(
-                        $vehiculo->placa,
-                        Auth::user()->name,
-                        $tipo,
-                        'Revisión de Fluidos'
-                    );
-                }
-                
+
                 $datos[] = [
                     'vehiculo_id' => $vehiculo->placa,
                     'user_id' => Auth::id(),
-                    'nivel_fluido' => $nivel,
-                    'imagen' => $nameImage,
-                    'revisado' => (bool)$revision['revisado'],
-                    'tipo' => $tipo,
+                    'nivel_fluido' => $revision['nivel_fluido'],
+                    'imagen' => $revision['imagen'],
+                    'revisado' => (bool) $revision['revisado'],
+                    'tipo' => $revision['tipo'],
+                    'fecha_creacion' => Carbon::now(),
                 ];
             }
             RevisionesDiarias::insert($datos);

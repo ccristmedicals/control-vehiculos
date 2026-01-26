@@ -23,6 +23,7 @@ use App\Http\Controllers\SurtidosController;
 use App\Http\Controllers\TipoUsuarioController;
 use App\Http\Controllers\UsersController;
 use App\Http\Controllers\VehiculoController;
+use App\Http\Controllers\EnviosController;
 
 // Ruta raíz: redirige al dashboard si está autenticado
 Route::get('/', function () {
@@ -72,10 +73,19 @@ Route::middleware(['auth'])->group(function () {
 
     // Observaciones
     Route::get('fichaTecnica/{vehiculo:placa}/observaciones', [ObservacionesController::class, 'show'])->name('observaciones.show');
-    Route::post('observaciones/{vehiculo:placa}/save', [ObservacionesController::class, 'store'])->name('observaciones.store')->middleware('audit:Realizo una observacion, Observacion');;
+    Route::post('observaciones/{vehiculo:placa}/save', [ObservacionesController::class, 'store'])->name('observaciones.store')->middleware('audit:Realizo una observacion, Observacion');
+    ;
 
     // Rutas para asignaciones
     Route::get('fichaTecnica/{vehiculo:placa}/asignaciones', [AsignacionesController::class, 'index'])->name('asignaciones');
+
+    // Exportar gasolina
+    Route::post('gasolina/exportar-seleccion', [SurtidosController::class, 'exportSelected'])->name('gasolina.exportSelected');
+
+    // Envios
+    Route::get('fichaTecnica/{vehiculo:placa}/envios', [EnviosController::class, 'index'])->name('envios.index');
+    Route::post('fichaTecnica/{vehiculo:placa}/envios', [EnviosController::class, 'store'])->name('envios.store');
+    Route::post('fichaTecnica/{vehiculo:placa}/envios/{envio}', [EnviosController::class, 'update'])->name('envios.update');
 });
 
 
@@ -92,7 +102,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('asignar-tipo', [TipoUsuarioController::class, 'assign'])->name('asignar-tipo.assign')->middleware('role');
 
     // Rutas facturas
-    Route::patch('fichaTecnica/facturas/{factura:fact_num}/auditoria', [FacturasController::class, 'updateAuditoria'])->name('facturas.auditoria.update')->middleware('audit:Aprobo una factura, Aprobo Factura');;
+    Route::patch('fichaTecnica/facturas/{factura:fact_num}/auditoria', [FacturasController::class, 'updateAuditoria'])->name('facturas.auditoria.update')->middleware('audit:Aprobo una factura, Aprobo Factura');
+    ;
 
     // Observaciones globales
     Route::get('observaciones', [ObservacionesController::class, 'index'])->name('observaciones.index');
@@ -100,7 +111,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Rutas gasolina
     Route::get('fichaTecnica/{vehiculo:placa}/gasolina', [SurtidosController::class, 'index'])->name('gasolina.index');
     Route::get('fichaTecnica/{vehiculo:placa}/gasolina/info', [SurtidosController::class, 'info']);
-    Route::post('fichaTecnica/{vehiculo:placa}/gasolina', [SurtidosController::class, 'store'])->name('surtidos.store')->middleware('audit:Realizo surtido de gasolina, Permisos');;
+    Route::post('fichaTecnica/{vehiculo:placa}/gasolina', [SurtidosController::class, 'store'])->name('surtidos.store')->middleware('audit:Realizo surtido de gasolina, Permisos');
+    ;
 
     // Visualizar perfil
     Route::get('perfiles', [UsersController::class, 'index'])->name('perfil.index');
@@ -115,13 +127,14 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::patch('vehiculo/{vehiculo:placa}', [VehiculoController::class, 'update'])->name('vehiculo.update');
 
     // Rutas para notificaciones
-    Route::get('notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
-    Route::put('notificaciones/{notificacion}/marcar-leida', [NotificacionController::class, 'marcarComoLeida'])->name('notificaciones.marcarLeida');
-    Route::put('/notificaciones/marcar-todas', [NotificacionController::class, 'marcarTodasComoLeidas']);
-    Route::delete('notificaciones/{notificacion}', [NotificacionController::class, 'destroy'])->name('notificaciones.destroy');
+    // Route::get('notificaciones', [NotificacionController::class, 'index'])->name('notificaciones.index');
+    // Route::put('notificaciones/{notificacion}/marcar-leida', [NotificacionController::class, 'marcarComoLeida'])->name('notificaciones.marcarLeida');
+    // Route::put('/notificaciones/marcar-todas', [NotificacionController::class, 'marcarTodasComoLeidas']);
+    // Route::delete('notificaciones/{notificacion}', [NotificacionController::class, 'destroy'])->name('notificaciones.destroy');
 
     // Editar Observacion
-    Route::patch('observaciones/{vehiculo:placa}/{observacion}/edit', [ObservacionesController::class, 'update'])->name('observaciones.update')->middleware('audit:Resolvio una observacion, Observacion');;
+    Route::patch('observaciones/{vehiculo:placa}/{observacion}/edit', [ObservacionesController::class, 'update'])->name('observaciones.update')->middleware('audit:Resolvio una observacion, Observacion');
+    ;
 });
 
 // Configuración y autenticación

@@ -42,7 +42,7 @@ class Gasolina
             return $datosFactura['fact_num'];
         } catch (\Exception $e) {
             DB::connection('sqlsrv')->rollBack();
-            throw $e;
+            dd($e);
         }
     }
 

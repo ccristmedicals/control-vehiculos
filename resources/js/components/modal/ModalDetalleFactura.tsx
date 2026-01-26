@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable react-hooks/rules-of-hooks */
 import { AuditoriaAdminState, ModalDetalleFacturaProps } from '@/types';
+import { compressToWebp } from '@/utils/compressToWebp';
 import { formatFecha } from '@/utils/formatDate';
 import { formatCantidad, formatPrecio } from '@/utils/formatNumbers';
 import { router } from '@inertiajs/react';
@@ -19,6 +20,9 @@ export default function ModalDetalleFactura({
     onActualizarEstado,
     isAdmin,
 }: ModalDetalleFacturaProps) {
+    // ESTADO PARA EL MODAL DE IMAGEN
+    const [imagenModal, setImagenModal] = useState<string | null>(null);
+
     if (!visible || typeof document === 'undefined') return null;
 
     const badgeEstado = (estado: boolean) => (
@@ -47,16 +51,29 @@ export default function ModalDetalleFactura({
         cubreUsuario: factura.cubre_usuario ? factura.cubre_usuario : '-',
     });
 
+    // --- CAMBIO 1: Estados para los datos del conductor ---
+    // (Asumo que 'factura.kilometraje' puede tener un valor previo si ya se guardó)
+    const [kilometraje, setKilometraje] = useState(String(factura.kilometraje ?? ''));
+    const [observacionConductor, setObservacionConductor] = useState(factura.observaciones_res ?? '');
+    const [imagenes, setImagenes] = useState<Record<string, File | null>>({});
+    // --- FIN CAMBIO 1 ---
+
     const handleSubmitAuditoria = () => {
         const hayImagenes = Object.values(imagenes).some((file) => file instanceof File);
 
-        if (!hayImagenes) {
+        // --- CAMBIO 3: Validación ---
+        // Se valida que haya imágenes Y que se haya ingresado el kilometraje
+        if (!hayImagenes || !kilometraje) {
+            console.log('Faltan imágenes o el kilometraje');
             return;
         }
 
         const formData = new FormData();
         formData.append('fact_num', factura.fact_num);
         formData.append('observacion', observacionConductor);
+        formData.append('kilometraje', kilometraje); // <-- DATO AÑADIDO
+        // --- FIN CAMBIO 3 ---
+
         Object.entries(imagenes).forEach(([co_art, file]) => {
             if (file) formData.append(`imagenes[${co_art}]`, file);
         });
@@ -100,9 +117,6 @@ export default function ModalDetalleFactura({
         });
     };
 
-    const [observacionConductor, setObservacionConductor] = useState(factura.observaciones_res ?? '');
-    const [imagenes, setImagenes] = useState<Record<string, File | null>>({});
-
     const usuarioAudito = renglones.every((r) => imagenes[r.co_art] instanceof File);
 
     const modalContent = (
@@ -117,6 +131,7 @@ export default function ModalDetalleFactura({
                     <h2 className="flex items-center gap-3 text-xl font-extrabold text-green-700 dark:text-green-500">
                         Detalle de la Factura #{factura?.fact_num ?? '—'}
                     </h2>
+
                     <button
                         onClick={onClose}
                         className="text-3xl font-bold text-gray-400 hover:text-gray-600"
@@ -126,39 +141,47 @@ export default function ModalDetalleFactura({
                         <X />
                     </button>
                 </div>
+
                 {/* <pre className="mt-4 rounded bg-gray-100 p-2 text-xs text-red-500">{JSON.stringify({ factura, renglones, vehiculo }, null, 2)}</pre> */}
                 {/* Datos principales */}
                 <div className="mt-6 grid grid-cols-2 gap-5 sm:grid-cols-2">
                     <div>
                         <p className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Subido por:</p>
+
                         <div className="rounded-lg border bg-gray-100 p-3 font-medium text-gray-900 shadow-sm dark:bg-gray-200">
                             {vehiculo.conductor.name}
                         </div>
                     </div>
+
                     <div>
                         <p className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Placa</p>
                         <div className="rounded-lg border bg-gray-100 p-3 font-medium text-black shadow-sm dark:bg-gray-200">{vehiculo.placa}</div>
                     </div>
+
                     <div>
                         <p className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Fecha de Factura</p>
+
                         <div className="rounded-lg border bg-gray-100 p-3 font-medium text-gray-900 shadow-sm dark:bg-gray-200">
                             {formatFecha(factura?.fec_emis ?? '-')}
                         </div>
                     </div>
+
                     <div>
                         <p className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Revisado</p>
+
                         <div className="rounded-lg border bg-gray-100 p-3 font-medium text-gray-900 shadow-sm dark:bg-gray-200">
                             {factura.aprobado ? badgeEstado(factura.aprobado) : '—'}
                         </div>
                     </div>
+
                     <div className="col-span-2">
                         <p className="mb-2 text-sm font-semibold text-gray-700 dark:text-gray-300">Descripción</p>
+
                         <div className="rounded-lg border bg-gray-100 p-3 font-medium text-gray-900 shadow-sm dark:bg-gray-200">
                             {factura?.descripcion ?? '—'}
                         </div>
                     </div>
                 </div>
-
                 {/* Tabla de productos */}
                 <div className="mt-8">
                     <h3 className="mb-2 text-lg font-bold text-gray-800 dark:text-gray-100">
@@ -176,15 +199,20 @@ export default function ModalDetalleFactura({
                                     <th className="px-4 py-2 text-left">Imagen</th>
                                 </tr>
                             </thead>
+
                             <tbody>
                                 {renglones.map((r, index) => {
                                     const cantidad = typeof r.total_art === 'string' ? parseFloat(r.total_art) : r.total_art;
                                     const precio = typeof r.reng_neto === 'string' ? parseFloat(r.reng_neto) : r.reng_neto;
 
+                                    // 1. Determinar el origen de la imagen
+                                    const nuevaImagenUrl = imagenes[r.co_art] ? URL.createObjectURL(imagenes[r.co_art]!) : null;
+                                    const imagenSrc = nuevaImagenUrl || r.imagen_url;
+
                                     return (
                                         <tr key={`${r.fact_num}-${r.co_art}-${index}`} className="border-t hover:bg-gray-50 dark:hover:bg-gray-700">
                                             <td
-                                                className="max-w-[125px] truncate px-4 py-2 text-left font-semibold text-gray-900 dark:text-gray-100"
+                                                className="px-4 py-2 text-left font-semibold text-gray-900 md:max-w-[125px] md:truncate dark:text-gray-100"
                                                 title={r.repuesto?.art_des ?? '—'}
                                             >
                                                 {r.repuesto?.art_des ?? '—'}
@@ -198,16 +226,20 @@ export default function ModalDetalleFactura({
                                                 <div className="flex items-center gap-2">
                                                     {imagenes[r.co_art] ? (
                                                         <img
-                                                            src={URL.createObjectURL(imagenes[r.co_art]!)}
+                                                            // Lógica de click para la imagen nueva (URL.createObjectURL)
+                                                            onClick={() => setImagenModal(imagenSrc!)}
+                                                            src={nuevaImagenUrl!}
                                                             alt="Nueva imagen"
-                                                            className="h-18 w-14 rounded border border-blue-500 object-cover"
+                                                            className="h-18 w-14 cursor-pointer rounded border border-blue-500 object-cover"
                                                         />
                                                     ) : (
                                                         r.imagen_url && (
                                                             <img
+                                                                // Lógica de click para la imagen guardada (r.imagen_url)
+                                                                onClick={() => setImagenModal(imagenSrc!)}
                                                                 src={r.imagen_url}
                                                                 alt="Imagen guardada"
-                                                                className="h-18 w-14 rounded border border-green-500 object-cover"
+                                                                className="h-18 w-14 cursor-pointer rounded border border-green-500 object-cover"
                                                             />
                                                         )
                                                     )}
@@ -216,9 +248,17 @@ export default function ModalDetalleFactura({
                                                         <input
                                                             type="file"
                                                             accept="image/*"
-                                                            onChange={(e) => {
+                                                            onChange={async (e) => {
                                                                 const file = e.target.files?.[0] ?? null;
-                                                                setImagenes((prev) => ({ ...prev, [r.co_art]: file }));
+                                                                if (!file) {
+                                                                    setImagenes((prev) => ({ ...prev, [r.co_art]: null }));
+                                                                    return;
+                                                                } // Comprime antes de guardar
+                                                                const compressed = await compressToWebp(file, {
+                                                                    maxWidthOrHeight: 2000,
+                                                                    targetSizeMB: 1.2,
+                                                                });
+                                                                setImagenes((prev) => ({ ...prev, [r.co_art]: compressed }));
                                                             }}
                                                             className="block w-full max-w-[110px] truncate text-xs text-gray-600 dark:text-gray-300"
                                                         />
@@ -231,48 +271,73 @@ export default function ModalDetalleFactura({
                             </tbody>
                         </table>
                     </div>
-
                     {/* Resumen de totales */}
                     <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
                         <div className="rounded-lg border bg-gray-100 p-4 shadow-sm dark:bg-gray-800">
                             <p className="mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">Total Bruto</p>
                             <p className="text-lg font-bold text-green-700 dark:text-green-400">{formatPrecio(factura.tot_bruto)}</p>
                         </div>
+
                         <div className="rounded-lg border bg-gray-100 p-4 shadow-sm dark:bg-gray-800">
                             <p className="mb-1 text-sm font-semibold text-gray-700 dark:text-gray-300">Total Neto</p>
                             <p className="text-lg font-bold text-green-700 dark:text-green-400">{formatPrecio(factura.tot_neto)}</p>
                         </div>
                     </div>
                 </div>
-                {/* Observación del conductor */}
-                <div className="my-6">
-                    <h3 className="mb-2 block text-lg font-semibold text-gray-800 dark:text-white">Observación del conductor</h3>
-                    <textarea
-                        value={observacionConductor}
-                        onChange={(e) => setObservacionConductor(e.target.value)}
-                        className="w-full resize-none rounded border px-3 py-2 text-sm font-medium text-gray-800 dark:bg-gray-800 dark:text-white"
-                        rows={4}
-                        placeholder="Escribe aquí..."
-                    />
 
+                {/* --- CAMBIO 2: SECCIÓN DE AUDITORÍA DEL CONDUCTOR ACTUALIZADA --- */}
+                <div className="my-6">
+                    {/* Campo de Kilometraje */}
+                    <div className="mb-4">
+                        <label htmlFor="kilometraje" className="mb-2 block text-lg font-semibold text-gray-800 dark:text-white">
+                            Kilometraje
+                        </label>
+                        <input
+                            type="number"
+                            id="kilometraje"
+                            name="kilometraje"
+                            value={kilometraje}
+                            onChange={(e) => setKilometraje(e.target.value)}
+                            className="w-full rounded border px-3 py-2 text-sm font-medium text-gray-800 dark:bg-gray-800 dark:text-white"
+                            placeholder="Ingrese el kilometraje"
+                        />
+                    </div>
+
+                    {/* Campo de Observación */}
+                    <div>
+                        <h3 className="mb-2 block text-lg font-semibold text-gray-800 dark:text-white">Observación del conductor</h3>
+                        <textarea
+                            value={observacionConductor}
+                            onChange={(e) => setObservacionConductor(e.target.value)}
+                            className="w-full resize-none rounded border px-3 py-2 text-sm font-medium text-gray-800 dark:bg-gray-800 dark:text-white"
+                            rows={4}
+                            placeholder="Escribe aquí..."
+                        />
+                    </div>
+
+                    {/* Botón de Guardar */}
                     <div className="flex items-center justify-end">
                         <button
                             onClick={handleSubmitAuditoria}
-                            disabled={!usuarioAudito}
+                            // Se deshabilita si faltan imágenes O falta el kilometraje
+                            disabled={!usuarioAudito || !kilometraje}
                             className={`mt-4 rounded-md px-4 py-2 text-sm font-semibold text-white ${
-                                !usuarioAudito ? 'cursor-not-allowed bg-gray-400' : 'bg-[#1a9888] hover:bg-[#188576]'
+                                !usuarioAudito || !kilometraje ? 'cursor-not-allowed bg-gray-400' : 'bg-[#1a9888] hover:bg-[#188576]'
                             }`}
                         >
                             Guardar auditoría del conductor
                         </button>
                     </div>
                 </div>
+                {/* --- FIN CAMBIO 2 --- */}
+
                 {/* Sección Admin */}
                 {isAdmin && (
                     <>
                         <div className="my-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Marcar Aprobado</label>
+
                                 <div className="flex items-center gap-3 rounded-lg border bg-gray-100 p-3 shadow-sm dark:bg-gray-200">
                                     <Checkbox
                                         id="aprobado"
@@ -284,14 +349,18 @@ export default function ModalDetalleFactura({
                                     <span className="text-md font-medium text-gray-900 dark:text-gray-800">Aprobado</span>
                                 </div>
                             </div>
+
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Supervisor</label>
+
                                 <div className="rounded-lg border bg-gray-100 p-3 font-medium text-black shadow-sm dark:bg-gray-200">
                                     {factura.supervisor}
                                 </div>
                             </div>
+
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">¿Cubre empresa?</label>
+
                                 <div className="rounded-lg border bg-gray-100 p-3 font-medium text-black shadow-sm dark:bg-gray-200">
                                     {factura.aprobado ? (
                                         factura.cubre ? (
@@ -318,6 +387,7 @@ export default function ModalDetalleFactura({
 
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-gray-700 dark:text-gray-300">Usuario que Paga</label>
+
                                 <div className="rounded-lg border bg-gray-100 p-3 font-medium text-black shadow-sm dark:bg-gray-200">
                                     {factura.aprobado ? (
                                         factura.cubre_usuario
@@ -343,6 +413,7 @@ export default function ModalDetalleFactura({
                         </div>
 
                         <h3 className="mb-2 block text-lg font-semibold text-gray-800 dark:text-white">Observación del supervisor</h3>
+
                         <textarea
                             value={adminState.observacionesAdmin}
                             onChange={(e) => setAdminState((prev) => ({ ...prev, observacionesAdmin: e.target.value }))}
@@ -369,5 +440,21 @@ export default function ModalDetalleFactura({
         </div>
     );
 
-    return createPortal(modalContent, document.body);
+    const modalAmpliada = imagenModal && (
+        <div className="bg-opacity-70 fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={() => setImagenModal(null)}>
+            <img
+                src={imagenModal}
+                alt="Imagen ampliada del producto"
+                className="max-h-[90vh] max-w-[90vw] rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()}
+            />
+        </div>
+    );
+
+    return (
+        <>
+            {createPortal(modalContent, document.body)}
+            {createPortal(modalAmpliada, document.body)}
+        </>
+    );
 }

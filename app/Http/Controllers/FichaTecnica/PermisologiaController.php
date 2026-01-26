@@ -86,14 +86,14 @@ class PermisologiaController extends Controller
                         if (!session()->has($clave)) {
                             session()->put($clave, true);
 
-                            if ($diasRestantes <= 15) {
-                                NotificacionHelper::emitirPermisoPorVencer(
-                                    $vehiculo->placa,
-                                    $usuario,
-                                    ucfirst($campo),
-                                    $vencimientoCarbon->toDateString()
-                                );
-                            }
+                            // if ($diasRestantes <= 15) {
+                            //     NotificacionHelper::emitirPermisoPorVencer(
+                            //         $vehiculo->placa,
+                            //         $usuario,
+                            //         ucfirst($campo),
+                            //         $vencimientoCarbon->toDateString()
+                            //     );
+                            // }
                         }
                     }
                 }

@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DateField } from '@/components/form-fields/DateField';
 import { SelectField } from '@/components/form-fields/SelectField';
+import { SearchSelectField } from '@/components/form-fields/SearchSelectField';
 import { TextField } from '@/components/form-fields/TextField';
 import { useFormLogic } from '@/hooks/useFormLogic';
 import { Field, FormCardProps } from '@/types';
@@ -54,11 +56,16 @@ export default function FormCard({ title, fields, buttonText, formType = 'expedi
             case 'select':
                 return <SelectField id={field.id} label={field.label} value={value} options={field.options} onChange={handleChangeWrapper} />;
 
+            // --- NUEVO: Agregamos el case para el buscador ---
+            case 'search-select':
+                return <SearchSelectField id={field.id} label={field.label} value={value} options={field.options} onChange={handleChangeWrapper} />;
+            // --------------------------------------------------
+
             case 'file': {
                 const safeFile = value instanceof File || value === null ? value : undefined;
 
                 const baseId = field.id.replace(/_archivo$/, '');
-                const rawDocumento = expediente[`${baseId}`] ?? expediente[`${baseId}_documento`];
+                const rawDocumento = expediente[field.id] ?? expediente[`${baseId}`] ?? expediente[`${baseId}_documento`];
                 const documentoActual = typeof rawDocumento === 'string' ? rawDocumento : undefined;
 
                 const progress = compProgress[field.id];
@@ -171,11 +178,10 @@ export default function FormCard({ title, fields, buttonText, formType = 'expedi
                         type="submit"
                         disabled={hasFechasInvalidas || hasCamposIncompletos || isCompressing}
                         title={isCompressing ? 'Esperando a que termine la compresión…' : undefined}
-                        className={`w-full rounded-full px-6 py-3 text-base font-semibold shadow-md transition-transform duration-200 md:w-auto ${
-                            hasFechasInvalidas || hasCamposIncompletos || isCompressing
-                                ? 'cursor-not-allowed bg-gray-400 text-white'
-                                : 'bg-[#49af4e] text-white hover:scale-105 hover:bg-[#3d9641] focus:ring-2 focus:ring-[#49af4e] focus:ring-offset-2 focus:outline-none'
-                        }`}
+                        className={`w-full rounded-full px-6 py-3 text-base font-semibold shadow-md transition-transform duration-200 md:w-auto ${hasFechasInvalidas || hasCamposIncompletos || isCompressing
+                            ? 'cursor-not-allowed bg-gray-400 text-white'
+                            : 'bg-[#49af4e] text-white hover:scale-105 hover:bg-[#3d9641] focus:ring-2 focus:ring-[#49af4e] focus:ring-offset-2 focus:outline-none'
+                            }`}
                     >
                         {buttonText ||
                             (isEditing

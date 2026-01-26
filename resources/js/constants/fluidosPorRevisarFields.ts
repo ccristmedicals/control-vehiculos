@@ -1,4 +1,4 @@
-import { Field } from "@/types";
+import { Field } from '@/types';
 
 // Campos para Fluidos para Revisar y revisionFluidos
 export const fluidosPorRevisarFields: Record<'CARRO' | 'MOTO', Field[]> = {
@@ -50,24 +50,23 @@ export const fluidosPorRevisarFields: Record<'CARRO' | 'MOTO', Field[]> = {
     ],
     MOTO: [
         {
-            id: 'cauchos',
-            label: 'Vida de los Cauchos',
+            id: 'aceite',
+            label: 'Aceite',
             type: 'select',
             options: [
-                { value: '0', label: 'Nuevos' },
-                { value: '1', label: 'Media Vida' },
-                { value: '2', label: 'Lisos' },
+                { value: '0', label: 'Full' },
+                { value: '1', label: 'Normal' },
+                { value: '2', label: 'Bajo' },
             ],
             required: false,
         },
         {
-            id: 'relacion',
-            label: 'Vida de la Relación',
+            id: 'tacometro',
+            label: 'Tacometro',
             type: 'select',
             options: [
-                { value: '0', label: 'Nueva' },
-                { value: '1', label: 'Media Vida' },
-                { value: '2', label: 'Mala' },
+                { value: '0', label: 'Operativo' },
+                { value: '1', label: 'Defectuoso' },
             ],
             required: false,
         },

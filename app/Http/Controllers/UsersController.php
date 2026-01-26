@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Services\Multimedia;
 use App\Helpers\FlashHelper;
+use Carbon\Carbon;
 
 class UsersController extends Controller
 {
@@ -15,8 +16,30 @@ class UsersController extends Controller
     {
         $usuarios = User::whereDoesntHave('roles', function ($query) {
             $query->where('name', 'admin');
-        })->get();
+        })->get()->map(function ($user) {
+            $documentos = [
+                'cedula',
+                'licencia',
+                'certificado_medico',
+            ];
 
+            $usuario = $user->toArray();
+
+            // Rutas completas para fotos
+            foreach ($documentos as $doc) {
+                $foto = "foto_$doc";
+                if (!empty($usuario[$foto])) {
+                    $usuario[$foto] = '/storage/uploads/fotos-documentos/' . ltrim($usuario[$foto], '/');
+                }
+            }
+
+            // Verifica si todos los documentos están subidos
+            $usuario['documentos_completos'] = collect($documentos)->every(function ($doc) use ($usuario) {
+                return !empty($usuario["foto_$doc"]);
+            });
+
+            return $usuario;
+        });
 
         return Inertia::render('dashboardUsuarios', [
             'usuarios' => $usuarios
@@ -35,12 +58,10 @@ class UsersController extends Controller
 
         foreach ($documentos as $doc) {
             $foto = "foto_$doc";
-            if ($usuario[$foto]) {
+            if (!empty($usuario[$foto])) {
                 $usuario[$foto] = '/storage/uploads/fotos-documentos/' . ltrim($usuario[$foto], '/');
             }
         }
-
-        //dd($usuario);
 
         return Inertia::render('perfilUsuario', [
             'usuario' => $usuario
@@ -78,21 +99,21 @@ class UsersController extends Controller
 
             $user->update($validatedData);
 
-            // 🔔 Emitir notificación si algún documento está por vencer
+            // Notificación por vencimiento
             foreach ($documentos as $doc) {
                 $campoVencimiento = "vencimiento_$doc";
                 if (isset($validatedData[$campoVencimiento])) {
-                    $fecha = \Carbon\Carbon::parse($validatedData[$campoVencimiento])->startOfDay();
-                    $diasRestantes = \Carbon\Carbon::today()->diffInDays($fecha, false);
+                    $fecha = Carbon::parse($validatedData[$campoVencimiento])->startOfDay();
+                    $diasRestantes = Carbon::today()->diffInDays($fecha, false);
 
-                    if ($diasRestantes <= 15) {
-                        NotificacionHelper::emitirDocumentoUsuarioPorVencer(
-                            $user->id,
-                            $user->name,
-                            ucfirst($doc),
-                            $fecha->toDateString()
-                        );
-                    }
+                    // if ($diasRestantes <= 15) {
+                    //     NotificacionHelper::emitirDocumentoUsuarioPorVencer(
+                    //         $user->id,
+                    //         $user->name,
+                    //         ucfirst($doc),
+                    //         $fecha->toDateString()
+                    //     );
+                    // }
                 }
             }
         }, 'Documentos actualizados correctamente.', 'Error al actualizar los documentos.');
