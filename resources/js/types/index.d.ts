@@ -50,7 +50,7 @@ export interface PageProps {
     [key: string]: any;
 }
 
-//  Formularios y UI
+// Formularios y UI
 
 export interface FileField {
     id: string;
@@ -62,7 +62,7 @@ export interface FileField {
 export interface Field {
     id: string;
     label: string;
-    type: 'text' | 'select' | 'date' | 'file' | 'checkbox' | 'number' | 'textarea' | 'search-select';
+    type: 'text' | 'select' | 'date' | 'file' | 'checkbox' | 'number' | 'textarea';
     placeholder?: string;
     options?: { value: string; label: string }[];
     required: boolean;
@@ -74,6 +74,7 @@ export interface FichaSeccionFluidosProps {
     fields: Field[];
     expediente: Record<string, string | boolean | File | null>;
     onSubmit: (formData: Record<string, string | boolean | File | null>) => void;
+    loading?: boolean;
 }
 
 export interface FichaSeccionProps {
@@ -84,6 +85,7 @@ export interface FichaSeccionProps {
     expediente: Record<string, string | boolean | File | null>;
     onChange?: (data: Record<string, any>) => void;
     onSubmit: (data: Record<string, string | boolean | File | null>) => void;
+    loading?: boolean;
 }
 
 export interface FormCardProps {
@@ -94,6 +96,7 @@ export interface FormCardProps {
     onChange?: (data: Record<string, any>) => void;
     onSubmit?: (formData: Record<string, string | boolean | File | null>) => void;
     expediente?: Record<string | number, string | boolean | File | null>;
+    loading?: boolean;
 }
 
 interface DateFieldProps {
