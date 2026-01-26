@@ -62,7 +62,7 @@ export default function Dashboard() {
             <div className="min-h-screen bg-background px-4 py-10 font-sans dark:bg-gray-900">
                 {/* <NotificacionRealtime /> */}
                 <div className="mb-10 text-center">
-                    <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard</h1>
+                    <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard de Vehículos</h1>
                 </div>
                 <div className="mb-6 flex flex-col items-center justify-center gap-4 sm:flex-row sm:items-end">
                     <div className="relative flex w-full max-w-md items-center gap-2">
