@@ -64,17 +64,18 @@ class DashboardController extends Controller
                 ->get();
 
         foreach ($vehiculos as $vehiculo) {
+            $facturas = DB::connection('sqlsrv')->select('SELECT fact_num FROM factura WHERE co_cli = ? AND anulada = 0 AND fec_emis >= ? AND co_tran <> ?', [$vehiculo->placa, '2025-10-06', '000003']);
+
+            $factNums = collect($facturas)->pluck('fact_num')->map(fn($id) => trim($id))->all();
+
             $auditoriasPendientes = FacturaAuditoria::where('vehiculo_id', $vehiculo->placa)
+                ->whereIn('fact_num', $factNums)
                 ->where(function ($q) {
                     $q->whereNull('aprobado')->orWhere('aprobado', 0);
                 })
                 ->count();
 
             $vehiculo->imagenes_factura_pendientes = $auditoriasPendientes;
-
-            $facturas = DB::connection('sqlsrv')->select('SELECT fact_num FROM factura WHERE co_cli = ? AND anulada = 0 AND fec_emis >= ? AND co_tran <> ?', [$vehiculo->placa, '2025-06-10', '000003']);
-
-            $factNums = collect($facturas)->pluck('fact_num')->all();
 
             $auditados = DB::connection('mysql')->select(
                 'SELECT fact_num FROM auditoria_facturas WHERE vehiculo_id=?',
