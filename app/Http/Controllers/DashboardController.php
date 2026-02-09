@@ -64,9 +64,15 @@ class DashboardController extends Controller
                 ->get();
 
         foreach ($vehiculos as $vehiculo) {
-            $facturas = DB::connection('sqlsrv')->select('SELECT fact_num FROM factura WHERE co_cli = ? AND anulada = 0 AND fec_emis >= ? AND co_tran <> ?', [$vehiculo->placa, '2025-10-06', '000003']);
+            $facturas = DB::connection('sqlsrv')->table('factura')
+                ->select('fact_num')
+                ->where('co_cli', $vehiculo->placa)
+                ->where('anulada', 0)
+                ->whereDate('fec_emis', '>=', '2025-10-06')
+                ->where('co_tran', '<>', '000003')
+                ->get();
 
-            $factNums = collect($facturas)->pluck('fact_num')->map(fn($id) => trim($id))->all();
+            $factNums = $facturas->pluck('fact_num')->map(fn($id) => trim((string) $id))->all();
 
             $auditoriasPendientes = FacturaAuditoria::where('vehiculo_id', $vehiculo->placa)
                 ->whereIn('fact_num', $factNums)
@@ -77,11 +83,11 @@ class DashboardController extends Controller
 
             $vehiculo->imagenes_factura_pendientes = $auditoriasPendientes;
 
-            $auditados = DB::connection('mysql')->select(
-                'SELECT fact_num FROM auditoria_facturas WHERE vehiculo_id=?',
-                [$vehiculo->placa]
-            );
-            $factNumsAudit = collect($auditados)->pluck('fact_num')->all();
+            $factNumsAudit = DB::connection('mysql')->table('auditoria_facturas')
+                ->where('vehiculo_id', $vehiculo->placa)
+                ->pluck('fact_num')
+                ->map(fn($id) => trim((string) $id))
+                ->all();
 
             $vehiculo->factura_pendiente = count(array_diff($factNums, $factNumsAudit));
 
