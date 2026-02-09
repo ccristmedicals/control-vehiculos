@@ -43,6 +43,9 @@ class ObservacionesController extends Controller
 
         $observaciones = $vehiculo->observaciones()
             ->with(['user', 'admin'])
+            ->when(!$isAdmin, function ($query) {
+                $query->where('resuelto', false);
+            })
             ->latest('fecha_creacion')
             ->get();
 

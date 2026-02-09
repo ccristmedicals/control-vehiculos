@@ -48,7 +48,9 @@ class DashboardController extends Controller
                 'usuarioAdicional3',
             ])
                 ->withCount([
-                    'observaciones as observaciones_no_resueltas',
+                    'observaciones as observaciones_no_resueltas' => function ($query) {
+                        $query->where('resuelto', false);
+                    },
                     'envios as envios_pendientes' => function ($query) {
                         $query->where('estado', 'pendiente');
                     }
