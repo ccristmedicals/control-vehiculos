@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { DateField } from '@/components/form-fields/DateField';
-import { SelectField } from '@/components/form-fields/SelectField';
 import { SearchSelectField } from '@/components/form-fields/SearchSelectField';
+import { SelectField } from '@/components/form-fields/SelectField';
 import { TextField } from '@/components/form-fields/TextField';
 import { useFormLogic } from '@/hooks/useFormLogic';
 import { Field, FormCardProps } from '@/types';
@@ -12,7 +12,7 @@ import { CheckField } from './form-fields/CheckField';
 import { FileField } from './form-fields/FileField';
 
 export default function FormCard({ title, fields, buttonText, formType = 'expediente', onSubmit, expediente = {}, onChange }: FormCardProps) {
-    const { formValues, isEditing, hasFechasInvalidas, hasCamposIncompletos, handleChange } = useFormLogic(expediente, fields);
+    const { formValues, isEditing, hasFechasInvalidas, hasCamposIncompletos, handleChange } = useFormLogic(expediente, fields, onChange);
 
     const [imagenModal, setImagenModal] = useState<string | null>(null);
     // Progreso de compresión por campo (0–100). Si existe la clave, está comprimiendo.
@@ -35,7 +35,7 @@ export default function FormCard({ title, fields, buttonText, formType = 'expedi
 
     const handleChangeWrapper = (id: string, value: any) => {
         handleChange(id, value);
-        onChange?.({ ...formValues, [id]: value });
+        // onChange is now handled by useFormLogic to avoid stale state issues in async contexts
     };
 
     const renderField = (field: Field) => {
@@ -163,13 +163,15 @@ export default function FormCard({ title, fields, buttonText, formType = 'expedi
     };
 
     return (
-        <div className="mx-auto w-full max-w-5xl rounded-xl border bg-gray-100 px-8 py-4 shadow-lg dark:bg-gray-800">
+        <div className="mx-auto w-full max-w-5xl rounded-xl border bg-gray-100 px-4 py-4 shadow-lg md:px-8 dark:bg-gray-800">
             {title && <h2 className="pb-4 text-center text-2xl font-semibold text-gray-800 dark:text-gray-100">{title}</h2>}
 
             <form className="space-y-8" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-1">
+                <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                     {fields.map((field) => (
-                        <div key={field.id}>{renderField(field)}</div>
+                        <div key={field.id} className={field.type === 'textarea' ? 'col-span-1 md:col-span-2' : ''}>
+                            {renderField(field)}
+                        </div>
                     ))}
                 </div>
 
@@ -178,10 +180,11 @@ export default function FormCard({ title, fields, buttonText, formType = 'expedi
                         type="submit"
                         disabled={hasFechasInvalidas || hasCamposIncompletos || isCompressing}
                         title={isCompressing ? 'Esperando a que termine la compresión…' : undefined}
-                        className={`w-full rounded-full px-6 py-3 text-base font-semibold shadow-md transition-transform duration-200 md:w-auto ${hasFechasInvalidas || hasCamposIncompletos || isCompressing
-                            ? 'cursor-not-allowed bg-gray-400 text-white'
-                            : 'bg-[#49af4e] text-white hover:scale-105 hover:bg-[#3d9641] focus:ring-2 focus:ring-[#49af4e] focus:ring-offset-2 focus:outline-none'
-                            }`}
+                        className={`w-full rounded-full px-6 py-3 text-base font-semibold shadow-md transition-transform duration-200 md:w-auto ${
+                            hasFechasInvalidas || hasCamposIncompletos || isCompressing
+                                ? 'cursor-not-allowed bg-gray-400 text-white'
+                                : 'bg-[#49af4e] text-white hover:scale-105 hover:bg-[#3d9641] focus:ring-2 focus:ring-[#49af4e] focus:ring-offset-2 focus:outline-none'
+                        }`}
                     >
                         {buttonText ||
                             (isEditing

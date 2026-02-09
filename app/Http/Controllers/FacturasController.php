@@ -24,22 +24,41 @@ class FacturasController extends Controller
 {
     public function index(Request $request, Vehiculo $vehiculo)
     {
-        $facturas = Factura::where('co_cli', $vehiculo->placa)
+        $facturasAuditadasIds = DB::table('auditoria_facturas')
+            ->where('vehiculo_id', $vehiculo->placa)
+            ->pluck('fact_num')
+            ->map(fn($id) => trim($id))
+            ->toArray();
+
+        $facturas = Factura::query()
+            ->where(function ($query) use ($vehiculo, $facturasAuditadasIds) {
+
+                $query->where('co_cli', $vehiculo->placa);
+
+                if (!empty($facturasAuditadasIds)) {
+                    $query->orWhereIn('fact_num', $facturasAuditadasIds);
+                }
+            })
             ->where('anulada', 0)
             ->whereNotIn('co_tran', ['000003'])
             ->whereDate('fec_emis', '>=', '2025-10-06')
             ->latest('fact_num')
             ->get()
-            ->map(function ($factura) {
-                $aprobado = DB::select('SELECT aprobado FROM auditoria_facturas WHERE fact_num=?', [trim($factura->fact_num)]);
+            ->map(function ($factura) use ($vehiculo) {
+                
+                $auditoria = DB::table('auditoria_facturas')
+                    ->select('aprobado')
+                    ->where('fact_num', trim($factura->fact_num))
+                    ->first();
+
                 return [
                     'fact_num' => $factura->fact_num,
                     'fec_emis' => $factura->fec_emis,
-                    'co_cli' => trim($factura->co_cli),
-                    'tot_bruto' => $factura->tot_bruto,
+                    'co_cli'   => trim($factura->co_cli),
+                    'tot_bruto'=> $factura->tot_bruto,
                     'tot_neto' => $factura->tot_neto,
                     'descripcion' => $factura->descripcion_limpia,
-                    'aprobado' => $aprobado[0]->aprobado ?? false,
+                    'aprobado' => $auditoria->aprobado ?? false,
                 ];
             });
 
@@ -104,9 +123,9 @@ class FacturasController extends Controller
         ];
 
         $adicionales = [
-            $adicional_1 = User::select('id', 'name')->find($vehiculo->user_id_adicional_1) ?? null,
-            $adicional_2 = User::select('id', 'name')->find($vehiculo->user_id_adicional_2) ?? null,
-            $adicional_3 = User::select('id', 'name')->find($vehiculo->user_id_adicional_3) ?? null
+            $adicional_1 = User::select('id', 'name')->find($vehiculo?->user_id_adicional_1) ?? null,
+            $adicional_2 = User::select('id', 'name')->find($vehiculo?->user_id_adicional_2) ?? null,
+            $adicional_3 = User::select('id', 'name')->find($vehiculo?->user_id_adicional_3) ?? null
         ];
 
         $usuarioQuePaga = $facturaAuditada?->cubre

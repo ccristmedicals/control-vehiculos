@@ -29,14 +29,9 @@ export function TablaFacturas({ facturas: facturasIniciales, vehiculo, isAdmin }
     } | null>(null);
     const handleCloseModal = () => {
         setShowModal(false);
-        router.get(
-            `/fichaTecnica/${vehiculo.placa}/facturas`,
-            {},
-            {
-                preserveState: true,
-                replace: true,
-            },
-        );
+        if (typeof window !== 'undefined') {
+            window.history.back();
+        }
     };
 
     return (

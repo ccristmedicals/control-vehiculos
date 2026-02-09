@@ -1,10 +1,12 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import FichaSeccionFluidos from '@/components/FichaSeccionFluidos';
+import UploadProgressBar from '@/components/UploadProgressBar';
 import { fluidosPorRevisarFields } from '@/constants/fluidosPorRevisarFields';
 import AppLayout from '@/layouts/app-layout';
 import { RevisionFluido, RevisionFluidosProps } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
+import axios from 'axios';
 import { useState } from 'react';
 
 // Definimos el tipo para el historial que viene del backend
@@ -36,6 +38,8 @@ export default function revisionFluidos({ vehiculoId }: RevisionFluidosProps) {
     // Estados para la carga y error de subida (NUEVO)
     const [processing, setProcessing] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const [uploadPercentage, setUploadPercentage] = useState(0);
+    const [uploadStats, setUploadStats] = useState({ loaded: 0, total: 0 });
 
     // --- LÓGICA DE HISTORIAL (NUEVO) ---
     const [verHistorialCompleto, setVerHistorialCompleto] = useState(false);
@@ -125,21 +129,30 @@ export default function revisionFluidos({ vehiculoId }: RevisionFluidosProps) {
             // 2. Realizar la petición única si hay archivos
             let resultados: Record<string, string> = {};
             if (hasFiles) {
-                const response = await fetch('http://98.94.185.164:8021/upload', {
-                    method: 'POST',
-                    body: batchData,
+                setUploadPercentage(1); // Force progress bar to show immediately
+                const response = await axios.post('http://98.94.185.164:8021/upload', batchData, {
+                    onUploadProgress: (progressEvent) => {
+                        const total = progressEvent.total || 0;
+                        const validTotal = total > 0 ? total : progressEvent.loaded; // Fallback if total is 0
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / validTotal);
+
+                        setUploadPercentage(percentCompleted);
+                        setUploadStats({
+                            loaded: progressEvent.loaded,
+                            total: validTotal,
+                        });
+                    },
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Error al subir imágenes: ${response.status}`);
-                }
-
-                const resData = await response.json();
-                if (resData.status === 'success' && resData.results) {
-                    resultados = resData.results;
+                if (response.data.status === 'success' && response.data.results) {
+                    resultados = response.data.results;
                 } else {
                     throw new Error('La respuesta del servidor no tiene el formato esperado.');
                 }
+
+                // Resetear la barra de carga cuando Go retorna respuesta
+                setUploadPercentage(0);
+                setUploadStats({ loaded: 0, total: 0 });
             }
 
             // 3. Construir el form final para Laravel
@@ -178,14 +191,23 @@ export default function revisionFluidos({ vehiculoId }: RevisionFluidosProps) {
                 forceFormData: true,
                 onSuccess: () => {
                     setValidationError(null);
-                    setVerHistorialCompleto(false); // Colapsar historial al guardar
+                    setVerHistorialCompleto(false);
                 },
-                onFinish: () => setProcessing(false),
+                onFinish: () => {
+                    setProcessing(false);
+                    setUploadPercentage(0);
+                    setUploadStats({ loaded: 0, total: 0 });
+                },
             });
         } catch (error: any) {
             console.error('Error uploading images:', error);
-            setUploadError(error.message || 'Ocurrió un error al subir las imágenes. Por favor revisa tu conexión e intenta de nuevo.');
+            setUploadError(
+                error.response?.data?.message ||
+                    error.message ||
+                    'Ocurrió un error al subir las imágenes. Por favor revisa tu conexión e intenta de nuevo.',
+            );
             setProcessing(false);
+            setUploadPercentage(0);
         }
     };
 
@@ -216,9 +238,11 @@ export default function revisionFluidos({ vehiculoId }: RevisionFluidosProps) {
     return (
         <AppLayout>
             <Head title="Revisión Semanal de Fluidos" />
-            <div className="min-h-screen bg-background px-4 py-10 font-sans dark:bg-gray-900">
+            <div className="min-h-screen bg-background px-4 py-6 font-sans md:py-10 dark:bg-gray-900">
                 <div className="mb-10 text-center">
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white">Revisión Fluidos {vehiculo?.modelo}</h1>
+                    <h1 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl dark:text-white">
+                        Revisión Fluidos {vehiculo?.modelo}
+                    </h1>
                 </div>
 
                 {/* SECCIÓN 1: FORMULARIO SEMANA ACTUAL (INPUTS) */}
@@ -237,8 +261,14 @@ export default function revisionFluidos({ vehiculoId }: RevisionFluidosProps) {
                         </div>
                     )}
                     {processing && (
-                        <div className="mb-4 rounded-md bg-blue-50 p-4 dark:bg-blue-900/50">
-                            <p className="text-sm text-blue-700 dark:text-blue-200">Subiendo imágenes y guardando... Por favor espera.</p>
+                        <div className="mb-4">
+                            {uploadPercentage > 0 ? (
+                                <UploadProgressBar percentage={uploadPercentage} loaded={uploadStats.loaded} total={uploadStats.total} />
+                            ) : (
+                                <div className="rounded-md bg-blue-50 p-4 dark:bg-blue-900/50">
+                                    <p className="text-sm text-blue-700 dark:text-blue-200">Subiendo imágenes y guardando... Por favor espera.</p>
+                                </div>
+                            )}
                         </div>
                     )}
 

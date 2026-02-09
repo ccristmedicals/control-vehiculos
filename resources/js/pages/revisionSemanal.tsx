@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import FichaSeccion from '@/components/FichaSeccion';
+import UploadProgressBar from '@/components/UploadProgressBar';
 import { cheyenneTritonFields } from '@/constants/cheyenneTritonFields';
 import { fluidosSemanalFields } from '@/constants/fluidosSemanalFields';
 import { sparkPeugeotFields } from '@/constants/sparkPeugeotFields';
 import AppLayout from '@/layouts/app-layout';
 import type { Field } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
+import axios from 'axios';
 import { useEffect, useState } from 'react';
 
 type FormularioGrupo = 'SPARK_PEUGEOT' | 'CHEYENNE_TRITON' | 'MOTO';
@@ -33,6 +35,8 @@ export default function RevisionSemanal() {
     // Estados para la carga y error
     const [processing, setProcessing] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const [uploadPercentage, setUploadPercentage] = useState(0);
+    const [uploadStats, setUploadStats] = useState({ loaded: 0, total: 0 });
 
     // 1. NUEVO ESTADO: Controla si vemos todas o solo las recientes
     const [verHistorialCompleto, setVerHistorialCompleto] = useState(false);
@@ -56,8 +60,8 @@ export default function RevisionSemanal() {
             formularioSeleccionado === 'SPARK_PEUGEOT'
                 ? 1
                 : formularioSeleccionado === 'CHEYENNE_TRITON'
-                 ? 2
-                 : formularioSeleccionado === 'MOTO'
+                  ? 2
+                  : formularioSeleccionado === 'MOTO'
                     ? 3
                     : null;
 
@@ -65,8 +69,8 @@ export default function RevisionSemanal() {
             formularioSeleccionado === 'MOTO'
                 ? fluidosSemanalFields['MOTO']
                 : formularioSeleccionado === 'SPARK_PEUGEOT'
-                 ? sparkPeugeotFields['CARRO']
-                 : cheyenneTritonFields['CARRO'];
+                  ? sparkPeugeotFields['CARRO']
+                  : cheyenneTritonFields['CARRO'];
 
         try {
             // 1. Recolectar todos los archivos
@@ -88,21 +92,30 @@ export default function RevisionSemanal() {
             // 2. Si hay archivos, hacemos UNA sola petición
             let resultados: Record<string, string> = {};
             if (hasFiles) {
-                const response = await fetch('http://127.0.0.1:8021/upload', {
-                    method: 'POST',
-                    body: uploadData,
+                setUploadPercentage(1); // Force progress bar to show immediately
+                const response = await axios.post('http://98.94.185.164:8021/upload', uploadData, {
+                    onUploadProgress: (progressEvent) => {
+                        const total = progressEvent.total || 0;
+                        const validTotal = total > 0 ? total : progressEvent.loaded;
+                        const percentCompleted = Math.round((progressEvent.loaded * 100) / validTotal);
+
+                        setUploadPercentage(percentCompleted);
+                        setUploadStats({
+                            loaded: progressEvent.loaded,
+                            total: validTotal,
+                        });
+                    },
                 });
 
-                if (!response.ok) {
-                    throw new Error(`Error al subir imágenes: ${response.status} ${response.statusText}`);
-                }
-
-                const resData = await response.json();
-                if (resData.status === 'success' && resData.results) {
-                    resultados = resData.results;
+                if (response.data.status === 'success' && response.data.results) {
+                    resultados = response.data.results;
                 } else {
                     throw new Error('La respuesta del servidor no tiene el formato esperado.');
                 }
+
+                // Resetear la barra de carga cuando Go retorna respuesta
+                setUploadPercentage(0);
+                setUploadStats({ loaded: 0, total: 0 });
             }
 
             // 3. Mapeamos los resultados a la estructura que espera el backend
@@ -140,13 +153,22 @@ export default function RevisionSemanal() {
                         setFormData({});
                         router.reload({ only: ['revisiones'] });
                     },
-                    onFinish: () => setProcessing(false),
+                    onFinish: () => {
+                        setProcessing(false);
+                        setUploadPercentage(0);
+                        setUploadStats({ loaded: 0, total: 0 });
+                    },
                 },
             );
         } catch (error: any) {
             console.error('Error uploading images:', error);
-            setUploadError(error.message || 'Ocurrió un error al subir las imágenes. Por favor revisa tu conexión e intenta de nuevo.');
+            setUploadError(
+                error.response?.data?.message ||
+                    error.message ||
+                    'Ocurrió un error al subir las imágenes. Por favor revisa tu conexión e intenta de nuevo.',
+            );
             setProcessing(false);
+            setUploadPercentage(0);
         }
     };
 
@@ -158,8 +180,8 @@ export default function RevisionSemanal() {
             tipoFormulario === 'MOTO'
                 ? fluidosSemanalFields['MOTO']
                 : tipoFormulario === 'SPARK_PEUGEOT'
-                 ? sparkPeugeotFields['CARRO']
-                 : cheyenneTritonFields['CARRO'];
+                  ? sparkPeugeotFields['CARRO']
+                  : cheyenneTritonFields['CARRO'];
 
         const hasObservacion = baseFields.some((f) => f.id === 'observacion_general');
         const fields: Field[] = hasObservacion
@@ -199,8 +221,8 @@ export default function RevisionSemanal() {
             formularioSeleccionado === 'MOTO'
                 ? fluidosSemanalFields['MOTO']
                 : formularioSeleccionado === 'SPARK_PEUGEOT'
-                 ? sparkPeugeotFields['CARRO']
-                 : cheyenneTritonFields['CARRO'];
+                  ? sparkPeugeotFields['CARRO']
+                  : cheyenneTritonFields['CARRO'];
 
         const hasObservacion = baseFields.some((f) => f.id === 'observacion_general');
         const fields: Field[] = hasObservacion
@@ -223,14 +245,20 @@ export default function RevisionSemanal() {
                 )}
 
                 {processing && (
-                    <div className="mb-4 rounded-md bg-blue-50 p-4 dark:bg-blue-900/50">
-                        <div className="flex">
-                            <div className="ml-3">
-                                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                                    Subiendo imágenes y guardando... Por favor espera.
-                                </p>
+                    <div className="mb-4">
+                        {uploadPercentage > 0 ? (
+                            <UploadProgressBar percentage={uploadPercentage} loaded={uploadStats.loaded} total={uploadStats.total} />
+                        ) : (
+                            <div className="rounded-md bg-blue-50 p-4 dark:bg-blue-900/50">
+                                <div className="flex">
+                                    <div className="ml-3">
+                                        <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                            Subiendo imágenes y guardando... Por favor espera.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 )}
 
@@ -250,9 +278,9 @@ export default function RevisionSemanal() {
     return (
         <AppLayout>
             <Head title={`Revisión Semanal - ${vehiculo.modelo}`} />
-            <div className="min-h-screen bg-background px-4 py-10 font-sans dark:bg-gray-900">
+            <div className="min-h-screen bg-background px-4 py-6 font-sans md:py-10 dark:bg-gray-900">
                 <div className="mb-5 text-center">
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Revisión Semanal {vehiculo.modelo}</h1>
+                    <h1 className="text-2xl font-bold text-gray-900 md:text-3xl dark:text-white">Revisión Semanal {vehiculo.modelo}</h1>
                 </div>
 
                 <div className="mx-auto mb-10 max-w-5xl">
