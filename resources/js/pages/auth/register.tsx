@@ -25,9 +25,11 @@ export default function Register() {
             >
                 {({ processing, errors }) => (
                     <>
-                        <div className="grid gap-6">
+                        <div className="grid gap-5">
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Nombre</Label>
+                                <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 ml-1">
+                                    Nombre Completo
+                                </Label>
                                 <Input
                                     id="name"
                                     type="text"
@@ -36,13 +38,16 @@ export default function Register() {
                                     tabIndex={1}
                                     autoComplete="name"
                                     name="name"
-                                    placeholder="Nombre Completo"
+                                    placeholder="Ingresa tu nombre"
+                                    className="h-12 rounded-xl border-gray-200 px-4 transition-all focus:ring-4 focus:ring-[#49af4e]/10 focus:border-[#49af4e] dark:bg-gray-800 dark:border-gray-700"
                                 />
-                                <InputError message={errors.name} className="mt-2" />
+                                <InputError message={errors.name} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Cedula de Identidad</Label>
+                                <Label htmlFor="email" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 ml-1">
+                                    Cédula de Identidad
+                                </Label>
                                 <Input
                                     id="email"
                                     type="text"
@@ -50,15 +55,17 @@ export default function Register() {
                                     tabIndex={2}
                                     autoComplete="email"
                                     name="email"
-                                    placeholder="12345678"
-                                    className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
+                                    placeholder="Ej. 12345678"
+                                    className="h-12 rounded-xl border-gray-200 px-4 transition-all focus:ring-4 focus:ring-[#49af4e]/10 focus:border-[#49af4e] dark:bg-gray-800 dark:border-gray-700"
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">Contraseña</Label>
-                                <div className="relative">
+                                <Label htmlFor="password" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 ml-1">
+                                    Contraseña
+                                </Label>
+                                <div className="relative group">
                                     <Input
                                         id="password"
                                         type={showPassword ? "text" : "password"}
@@ -66,19 +73,19 @@ export default function Register() {
                                         tabIndex={3}
                                         autoComplete="new-password"
                                         name="password"
-                                        placeholder="Contraseña"
-                                        className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
+                                        placeholder="Crea una contraseña"
+                                        className="h-12 rounded-xl border-gray-200 px-4 transition-all focus:ring-4 focus:ring-[#49af4e]/10 focus:border-[#49af4e] dark:bg-gray-800 dark:border-gray-700"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-blue-600 cursor-pointer focus:outline-none"
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-[#49af4e] transition-colors focus:outline-none"
                                         tabIndex={-1}
                                     >
                                         {showPassword ? (
-                                            <Eye size={16} color='#49af4e' />
+                                            <Eye size={18} />
                                         ) : (
-                                            <EyeClosed size={16} color='#49af4e' />
+                                            <EyeClosed size={18} />
                                         )}
                                     </button>
                                 </div>
@@ -86,8 +93,10 @@ export default function Register() {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">Confirma tu contraseña</Label>
-                                <div className="relative">
+                                <Label htmlFor="password_confirmation" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 ml-1">
+                                    Confirma tu contraseña
+                                </Label>
+                                <div className="relative group">
                                     <Input
                                         id="password_confirmation"
                                         type={showPasswordConfirmation ? "text" : "password"}
@@ -95,19 +104,19 @@ export default function Register() {
                                         tabIndex={4}
                                         autoComplete="new-password"
                                         name="password_confirmation"
-                                        placeholder="Contraseña"
-                                        className="rounded-lg border border-gray-300 px-4 py-2 transition-all focus:border-[#49af4e] focus:ring-2 focus:ring-[#49af4e]"
+                                        placeholder="Repite tu contraseña"
+                                        className="h-12 rounded-xl border-gray-200 px-4 transition-all focus:ring-4 focus:ring-[#49af4e]/10 focus:border-[#49af4e] dark:bg-gray-800 dark:border-gray-700"
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
-                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-blue-600 cursor-pointer focus:outline-none"
+                                        className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-[#49af4e] transition-colors focus:outline-none"
                                         tabIndex={-1}
                                     >
                                         {showPasswordConfirmation ? (
-                                            <Eye size={16} color='#49af4e' />
+                                            <Eye size={18} />
                                         ) : (
-                                            <EyeClosed size={16} color='#49af4e' />
+                                            <EyeClosed size={18} />
                                         )}
                                     </button>
                                 </div>
@@ -116,20 +125,25 @@ export default function Register() {
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full rounded-lg bg-[#49af4e] py-3 font-semibold text-white shadow-md transition-colors hover:bg-[#3d9641]"
-                                tabIndex={4}
+                                className="mt-2 h-12 w-full rounded-xl bg-[#49af4e] font-black text-white shadow-lg shadow-[#49af4e]/20 transition-all hover:bg-[#3d9641] active:scale-[0.98]"
+                                tabIndex={5}
                                 disabled={processing}
                             >
-                                {processing && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                                Crear Cuenta
+                                {processing ? (
+                                    <LoaderCircle className="h-5 w-5 animate-spin" />
+                                ) : (
+                                    "Crear nueva cuenta"
+                                )}
                             </Button>
                         </div>
 
-                        <div className="text-center text-sm text-muted-foreground">
-                            ¿Ya tienes una cuenta?{' '}
-                            <TextLink href={login()} tabIndex={6} className="text-blue-600 hover:underline">
-                                Inicia Sesión
-                            </TextLink>
+                        <div className="pt-4 border-t border-gray-50 dark:border-gray-800 text-center">
+                            <p className="text-xs font-medium text-muted-foreground">
+                                ¿Ya tienes una cuenta?{' '}
+                                <TextLink href={login()} tabIndex={6} className="font-black text-[#49af4e] hover:underline">
+                                    Inicia sesión aquí
+                                </TextLink>
+                            </p>
                         </div>
                     </>
                 )}
