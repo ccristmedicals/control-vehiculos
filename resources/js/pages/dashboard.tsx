@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// import NotificacionRealtime from '@/components/NotificacionRealtime';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Toaster } from '@/components/ui/sonner';
 import VehiculoCard from '@/components/VehiculoCard';
 import AppLayout from '@/layouts/app-layout';
 import { exportGasolinaGeneralExcel } from '@/utils/exportGasolinaGeneralExcel';
 import { Head, usePage } from '@inertiajs/react';
-import { Search } from 'lucide-react';
+import { FileDown, Search, FilterX } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 export default function Dashboard() {
@@ -17,13 +19,6 @@ export default function Dashboard() {
     const [fechaDesde, setFechaDesde] = useState('');
     const [fechaHasta, setFechaHasta] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
-    // const [tipoFiltro, setTipoFiltro] = useState<'todos' | 'moto' | 'carro'>(() => {
-    //     return (localStorage.getItem('tipoFiltro') as 'todos' | 'moto' | 'carro') || 'todos';
-    // });
-
-    // useEffect(() => {
-    //     localStorage.setItem('tipoFiltro', tipoFiltro);
-    // }, [tipoFiltro]);
 
     const vehiculosFiltrados = useMemo(() => {
         const term = searchTerm.toLowerCase();
@@ -33,10 +28,7 @@ export default function Dashboard() {
             const tipo = v.tipo?.toLowerCase() || '';
             const modelo = v.modelo?.toLowerCase() || '';
 
-            const coincideBusqueda = placa.includes(term) || nombre.includes(term) || modelo.includes(term) || tipo.includes(term);
-            // const coincideTipo = tipoFiltro === 'todos' || tipo === tipoFiltro;
-
-            return coincideBusqueda;
+            return placa.includes(term) || nombre.includes(term) || modelo.includes(term) || tipo.includes(term);
         });
     }, [searchTerm, vehiculos]);
 
@@ -58,78 +50,115 @@ export default function Dashboard() {
 
     return (
         <AppLayout>
-            <Head title="Dashboard de Vehículos" />
-            <div className="min-h-screen bg-background px-4 py-10 font-sans dark:bg-gray-900">
-                {/* <NotificacionRealtime /> */}
-                <div className="mb-10 text-center">
-                    <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">Dashboard de Vehículos</h1>
-                </div>
-                <div className="mb-6 flex flex-col items-center justify-center gap-4 sm:flex-row sm:items-end">
-                    <div className="relative flex w-full max-w-md items-center gap-2">
-                        <Search className="absolute left-3 h-4 w-4 text-gray-400 dark:text-gray-300" />
-                        <input
-                            type="text"
-                            placeholder="Buscar por nombre, placa o modelo"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full rounded-md border border-gray-300 bg-white px-10 py-2 text-sm text-gray-800 shadow-sm focus:border-green-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                        />
+            <Head title="Dashboard" />
+            <div className="min-h-screen bg-background p-4 md:p-8 font-sans dark:bg-gray-950">
+                {/* Header Section */}
+                <div className="mb-10 flex flex-col items-center justify-between gap-6 md:flex-row md:items-end">
+                    <div className="space-y-1 text-center md:text-left">
+                        <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 lg:text-5xl dark:text-white">
+                            Dashboard de <span className="text-[#49af4e]">Vehículos</span>
+                        </h1>
+                        <p className="text-muted-foreground">
+                            Gestiona y monitorea el estado de tu flota en tiempo real.
+                        </p>
                     </div>
 
-                    {/* <select
-                        value={tipoFiltro}
-                        onChange={(e) => setTipoFiltro(e.target.value as 'todos' | 'moto' | 'carro')}
-                        className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 shadow-sm focus:border-green-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                    >
-                        <option value="moto">Motos</option>
-                        <option value="carro">Carros</option>
-                    </select> */}
-
-                    {modo === 'admin' && (
-                        <div className="flex w-full flex-row items-center gap-2 sm:w-auto sm:flex-row sm:items-center sm:justify-center">
-                            <div className="flex w-full flex-col items-center">
-                                <div className="pb-2 text-center text-sm font-bold tracking-tight text-gray-900 sm:text-left dark:text-white">
-                                    Fecha desde:
-                                </div>
-                                <input
-                                    type="date"
-                                    value={fechaDesde}
-                                    onChange={(e) => setFechaDesde(e.target.value)}
-                                    className="w-44 rounded-md border border-gray-300 p-2 text-center text-sm text-gray-800 shadow-sm focus:border-green-500 focus:outline-none sm:w-auto sm:text-left dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                                />
-                            </div>
-
-                            <div className="flex w-full flex-col items-center">
-                                <div className="pb-2 text-center text-sm font-bold tracking-tight text-gray-900 sm:text-left dark:text-white">
-                                    Fecha hasta:
-                                </div>
-                                <input
-                                    type="date"
-                                    value={fechaHasta}
-                                    onChange={(e) => setFechaHasta(e.target.value)}
-                                    className="w-44 rounded-md border border-gray-300 p-2 text-center text-sm text-gray-800 shadow-sm focus:border-green-500 focus:outline-none sm:w-auto sm:text-left dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                                />
-                            </div>
-                        </div>
-                    )}
-                    <button
+                    <Button
                         onClick={handleExport}
-                        className="flex items-center justify-center gap-1 rounded-2xl bg-[#49af4e] p-3 text-sm font-semibold text-white hover:bg-[#47a84c] sm:w-auto sm:justify-start"
+                        className="w-full bg-[#49af4e] hover:bg-[#47a84c] text-white shadow-lg shadow-[#49af4e]/20 transition-all hover:translate-y-[-2px] md:w-auto"
+                        size="lg"
                     >
-                        Reporte General de Gasolina
-                    </button>
+                        <FileDown className="mr-2 h-5 w-5" />
+                        Reporte General
+                    </Button>
                 </div>
 
-                <div className="mb-4 text-center text-sm text-gray-600 dark:text-gray-400">
-                    Mostrando <strong>{vehiculosFiltrados.length}</strong> de {vehiculos.length} vehículos
-                </div>
-                <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {vehiculosFiltrados.map((vehiculo) => (
-                        <div key={vehiculo.placa} className="animate-fade-in-up transition-transform duration-300 hover:scale-[1.02]">
-                            <VehiculoCard vehiculo={vehiculo} />
+                {/* Filters Section */}
+                <Card className="mb-10 border-none bg-white/50 p-4 shadow-sm backdrop-blur-sm dark:bg-gray-900/50">
+                    <div className="flex flex-col gap-6 md:flex-row md:items-end">
+                        <div className="relative flex-1">
+                            <label className="mb-2 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                Buscar Vehículo
+                            </label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                <Input
+                                    placeholder="Nombre, placa, modelo o tipo..."
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    className="pl-10 h-11 bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700 focus:ring-[#49af4e]"
+                                />
+                            </div>
                         </div>
-                    ))}
+
+                        {modo === 'admin' && (
+                            <div className="flex flex-col gap-4 sm:flex-row md:flex-[0_0_auto]">
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                        Desde
+                                    </label>
+                                    <Input
+                                        type="date"
+                                        value={fechaDesde}
+                                        onChange={(e) => setFechaDesde(e.target.value)}
+                                        className="h-11 w-full sm:w-44 bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                                        Hasta
+                                    </label>
+                                    <Input
+                                        type="date"
+                                        value={fechaHasta}
+                                        onChange={(e) => setFechaHasta(e.target.value)}
+                                        className="h-11 w-full sm:w-44 bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700"
+                                    />
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </Card>
+
+                {/* Stats / Results Meta */}
+                <div className="mb-6 flex items-center justify-between px-2">
+                    <p className="text-sm font-medium text-muted-foreground">
+                        Mostrando <span className="text-foreground font-bold">{vehiculosFiltrados.length}</span> de {vehiculos.length} vehículos
+                    </p>
                 </div>
+
+                {/* Grid Section */}
+                {vehiculosFiltrados.length > 0 ? (
+                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                        {vehiculosFiltrados.map((vehiculo) => (
+                            <div
+                                key={vehiculo.placa}
+                                className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both"
+                                style={{ animationDelay: `${vehiculosFiltrados.indexOf(vehiculo) * 50}ms` }}
+                            >
+                                <VehiculoCard vehiculo={vehiculo} />
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-200 py-20 dark:border-gray-800">
+                        <div className="rounded-full bg-gray-100 p-6 dark:bg-gray-900">
+                            <FilterX className="h-12 w-12 text-gray-400" />
+                        </div>
+                        <h3 className="mt-4 text-xl font-semibold text-gray-900 dark:text-white">No se encontraron vehículos</h3>
+                        <p className="mt-2 text-center text-muted-foreground max-w-xs px-4">
+                            No hay resultados que coincidan con "<span className="font-bold">{searchTerm}</span>". Intenta con otro término.
+                        </p>
+                        <Button
+                            variant="link"
+                            onClick={() => setSearchTerm('')}
+                            className="mt-4 text-[#49af4e] hover:text-[#47a84c]"
+                        >
+                            Limpiar búsqueda
+                        </Button>
+                    </div>
+                )}
+
                 <Toaster />
             </div>
         </AppLayout>
