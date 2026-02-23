@@ -180,11 +180,10 @@ export default function FormCard({ title, fields, buttonText, formType = 'expedi
                         type="submit"
                         disabled={hasFechasInvalidas || hasCamposIncompletos || isCompressing}
                         title={isCompressing ? 'Esperando a que termine la compresión…' : undefined}
-                        className={`w-full rounded-full px-6 py-3 text-base font-semibold shadow-md transition-transform duration-200 md:w-auto ${
-                            hasFechasInvalidas || hasCamposIncompletos || isCompressing
+                        className={`w-full rounded-full px-6 py-3 text-base font-semibold shadow-md transition-transform duration-200 md:w-auto ${hasFechasInvalidas || hasCamposIncompletos || isCompressing
                                 ? 'cursor-not-allowed bg-gray-400 text-white'
                                 : 'bg-[#49af4e] text-white hover:scale-105 hover:bg-[#3d9641] focus:ring-2 focus:ring-[#49af4e] focus:ring-offset-2 focus:outline-none'
-                        }`}
+                            }`}
                     >
                         {buttonText ||
                             (isEditing

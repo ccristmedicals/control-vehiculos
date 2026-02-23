@@ -62,7 +62,7 @@ export interface FileField {
 export interface Field {
     id: string;
     label: string;
-    type: 'text' | 'select' | 'date' | 'file' | 'checkbox' | 'number' | 'textarea';
+    type: 'text' | 'select' | 'date' | 'file' | 'checkbox' | 'number' | 'textarea' | 'search-select';
     placeholder?: string;
     options?: { value: string; label: string }[];
     required: boolean;
