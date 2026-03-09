@@ -94,9 +94,13 @@ class DashboardController extends Controller
 
             $vehiculo->imagenes_factura_pendientes = $auditoriasPendientes;
 
-            $factNumsAudit = $auditoriasVehiculo->pluck('fact_num')->map(fn($id) => trim((string) $id))->all();
+            $factNumsAuditAprobadas = $auditoriasVehiculo
+                ->filter(fn($auditoria) => $auditoria->aprobado == 1)
+                ->pluck('fact_num')
+                ->map(fn($id) => trim((string) $id))
+                ->all();
 
-            $vehiculo->factura_pendiente = count(array_diff($factNums, $factNumsAudit));
+            $vehiculo->factura_pendiente = count(array_diff($factNums, $factNumsAuditAprobadas));
 
             if (!$vehiculo->user_id)
                 continue;
