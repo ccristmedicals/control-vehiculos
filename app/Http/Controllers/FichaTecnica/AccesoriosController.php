@@ -31,6 +31,7 @@ class AccesoriosController extends Controller
                     [
                         'estado' => $estado,
                         'user_id' => $request->user()->id,
+                        'fecha_verificacion' => now(),
                     ]
                 );
 

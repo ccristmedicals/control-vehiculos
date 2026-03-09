@@ -9,12 +9,15 @@ class VehiculoPiezas extends Model
 {
     protected $table = 'vehiculo_piezas';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'vehiculo_id',
         'pieza_id',
         'estado',
         'observaciones',
         'user_id',
+        'fecha_verificacion',
     ];
 
     protected $casts = [

@@ -6,7 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class VehiculoAccesorios extends Model
 {
-    protected $fillable = ['vehiculo_id', 'accesorio_id', 'estado', 'user_id'];
+    public $timestamps = false;
+
+    protected $fillable = ['vehiculo_id', 'accesorio_id', 'estado', 'user_id', 'fecha_verificacion'];
 
     public function vehiculo()
     {

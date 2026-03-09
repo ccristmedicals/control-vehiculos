@@ -23,7 +23,7 @@ class PiezasController
                 if ($estado !== null && $estado !== '') {
                     VehiculoPiezas::updateOrCreate(
                         ['vehiculo_id' => $vehiculo->placa, 'pieza_id' => $pieza_id],
-                        ['estado' => $estado, 'user_id' => $request->user()->id]
+                        ['estado' => $estado, 'user_id' => $request->user()->id, 'fecha_verificacion' => now()]
                     );
 
                     // if (in_array((int) $estado, [1, 2])) {

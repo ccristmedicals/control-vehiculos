@@ -21,13 +21,13 @@ class ExpedienteTecnicoController extends Controller
             foreach ($campos as $especificacionId => $valor) {
                 VehiculoEspecificaciones::updateOrCreate(
                     [
-                        'user_id' => $request->user()->id,
                         'vehiculo_id' => $vehiculo->placa,
                         'especificacion_id' => $especificacionId,
                     ],
                     [
+                        'user_id' => $request->user()->id,
                         'estado' => $valor,
-                        'esta_registrado' => true,
+                        'fecha_verificacion' => now(),
                     ]
                 );
             }
