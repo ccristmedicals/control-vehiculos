@@ -1,16 +1,16 @@
 FROM php:8.3-fpm
 
 # 1. Instalar dependencias básicas y herramientas de Linux
-# CAMBIO: Quitamos "ext-zip" y agregamos "libzip-dev"
 RUN apt-get update && apt-get install -y \
     git \
     curl \
     libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    libwebp-dev \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
-    libjpeg62-turbo-dev \
-    libfreetype6-dev \
     zip \
     unzip \
     gnupg2 \
@@ -29,8 +29,7 @@ RUN apt-get update && ACCEPT_EULA=Y apt-get install -y \
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # 5. Instalar extensiones nativas de PHP
-# CAMBIO: Agregamos "zip" al final de esta lista
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j$(nproc) pdo_mysql mbstring exif pcntl bcmath gd zip
 
 # 6. Instalar extensiones PECL de SQL Server

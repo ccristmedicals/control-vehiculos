@@ -17,29 +17,37 @@ class Multimedia
         'semanal' => 'uploads/fotos-semanales'
     ];
 
-    public function guardarImagen($image, $tipo)
+public function guardarImagen($image, $tipo)
     {
         try {
             if (!array_key_exists($tipo, $this->rutasGuardado)) {
+                dd('2. ERROR: El tipo "' . $tipo . '" no existe en el arreglo rutasGuardado.');
                 return false;
             }
-
             $nameImage = Str::uuid() . '.' . $image->extension();
-            $serverImage = ImageManager::gd()->read($image);
-            //$serverImage->cover(1200, 800);
+            
+            $serverImage = ImageManager::gd()->read($image->getRealPath());
 
             $targetPath = $this->rutasGuardado[$tipo];
             $encoded = $serverImage->encode();
 
             if (!$encoded) {
+                dd('5. ERROR: No se pudo codificar la imagen.');
                 return false;
             }
 
             $respuesta = Storage::disk('public')->put($targetPath . '/' . $nameImage, $encoded);
 
             return $respuesta ? $nameImage : false;
-        } catch (\Exception $e) {
-            return false;
+            
+        } catch (\Throwable $e) {
+            
+            dd([
+                'mensaje' => $e->getMessage(),
+                'linea' => $e->getLine(),
+                'archivo' => $e->getFile()
+            ]);
+            
         }
     }
 

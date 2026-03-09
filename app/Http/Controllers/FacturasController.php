@@ -167,27 +167,26 @@ class FacturasController extends Controller
 
     public function storeAuditoria(Request $request, Factura $factura)
     {
+        
         return FlashHelper::try(function () use ($request, $factura) {
             DB::beginTransaction();
 
             $imagenes = $request->file('imagenes') ?? [];
-
             if (empty($imagenes)) {
                 throw new \Exception('Debes subir al menos una imagen por producto');
-            }
-
+            } 
             foreach ($imagenes as $co_art => $file) {
                 if (!$file->isValid()) {
                     throw new \Exception("La imagen de {$co_art} no es válida");
                 }
             }
-
+            
             $request->validate([
                 'observacion' => 'nullable|string',
                 'imagenes.*' => 'image|max:5120',
                 'kilometraje' => 'required|numeric'
             ]);
-
+            
             FacturaAuditoria::create([
                 'fact_num' => $factura->fact_num,
                 'vehiculo_id' => $factura->co_cli,
@@ -195,13 +194,13 @@ class FacturasController extends Controller
                 'observaciones_res' => $request->input('observacion'),
                 'kilometraje' => $request->kilometraje
             ]);
-
+            
             $datos = [];
             $multimedia = new Multimedia;
-
+            
             foreach ($imagenes as $co_art => $file) {
                 $nombre = $multimedia->guardarImagen($file, 'auditorias');
-
+                
                 if (!$nombre) {
                     throw new \Exception("Error al guardar la imagen de {$co_art}");
                 }
