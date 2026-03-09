@@ -1,16 +1,19 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\FichaTecnica;
 
 use App\Models\VehiculoPiezas;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use App\Helpers\NotificacionHelper;
 use App\Helpers\FlashHelper;
 use App\Models\Vehiculo;
 
 class PiezasController
 {
-    public function store(Request $request, Vehiculo $vehiculo)
+    public function store(Request $request, Vehiculo $vehiculo): RedirectResponse
     {
         return FlashHelper::try(function () use ($request, $vehiculo) {
             $data = $request->except('vehiculo_id');

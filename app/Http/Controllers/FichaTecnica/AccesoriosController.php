@@ -1,9 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\FichaTecnica;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use App\Models\Vehiculo;
 use App\Models\VehiculoAccesorios;
 use App\Helpers\NotificacionHelper;
@@ -11,7 +14,7 @@ use App\Helpers\FlashHelper;
 
 class AccesoriosController extends Controller
 {
-    public function store(Request $request, Vehiculo $vehiculo)
+    public function store(Request $request, Vehiculo $vehiculo): RedirectResponse
     {
         return FlashHelper::try(function () use ($request, $vehiculo) {
             $data = $request->except('vehiculo_id');

@@ -1,12 +1,14 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Helpers;
 
 use Illuminate\Support\Carbon;
 
 class ProfitLogger
 {
-    public static function pista(string $tabla, int $numDoc = 0, string $tipoOp = 'I', string $empresa = 'VEHI24', $rowguid, $admin)
+    public static function pista(string $tabla, int $numDoc, string $tipoOp, string $empresa, string $rowguid, string $admin): array
     {
         $pista = [
             "usuario_id" => "GAS",

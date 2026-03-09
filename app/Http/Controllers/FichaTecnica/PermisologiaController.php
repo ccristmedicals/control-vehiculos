@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Controllers\FichaTecnica;
 
 use App\Helpers\NotificacionHelper;
@@ -7,13 +9,14 @@ use App\Helpers\FlashHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Vehiculo;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use App\Models\VehiculoPermisos;
 use App\Services\Multimedia;
 use Carbon\Carbon;
 
 class PermisologiaController extends Controller
 {
-    public function store(Request $request, Vehiculo $vehiculo)
+    public function store(Request $request, Vehiculo $vehiculo): RedirectResponse
     {
         return FlashHelper::try(function () use ($request, $vehiculo) {
             try {
@@ -34,10 +37,19 @@ class PermisologiaController extends Controller
                 $multimedia = new Multimedia;
 
                 foreach ($mapaPermisos as $campo => $permisoId) {
+                    // Solo procedemos a evaluar / alterar este permiso si existe evidencia de envio en el FormData
+                    $hasExpedicion = $request->has("{$campo}_expedicion");
+                    $hasVencimiento = $request->has("{$campo}_vencimiento");
+                    $hasArchivo = $request->hasFile("{$campo}_archivo");
+
+                    if (!$hasExpedicion && !$hasVencimiento && !$hasArchivo) {
+                        continue;
+                    }
+
                     $expedicion = $request->input("{$campo}_expedicion");
                     $vencimiento = $request->input("{$campo}_vencimiento");
 
-                    // Validación de fechas
+                    // Validación de fechas lógicas
                     if ($expedicion && $vencimiento && $vencimiento < $expedicion) {
                         continue;
                     }
@@ -53,11 +65,12 @@ class PermisologiaController extends Controller
                             : $multimedia->guardarImagen($archivo, 'documentos');
                     }
 
-                    // Estado del permiso
+                    // Estado del permiso (activos si la fecha de vencimiento es a futuro o si no está vencido)
                     $estado = $vencimiento ? now()->lt($vencimiento) : true;
 
-                    // Datos a guardar
-                    $datos = [
+                    // Datos base a actualizar/insertar
+                    $datosUpdate = [
+                        'user_id' => $userId,
                         'estado' => $estado,
                         'fecha_expedicion' => $expedicion,
                         'fecha_vencimiento' => $vencimiento,
@@ -65,17 +78,16 @@ class PermisologiaController extends Controller
                     ];
 
                     if ($documento) {
-                        $datos['documento'] = $documento;
+                        $datosUpdate['documento'] = $documento;
                     }
 
                     // Guardar o actualizar permiso
                     VehiculoPermisos::updateOrCreate(
                         [
-                            'user_id' => $userId,
                             'vehiculo_id' => $vehiculo->placa,
                             'permiso_id' => $permisoId,
                         ],
-                        $datos
+                        $datosUpdate
                     );
 
                     // Notificación si el permiso está por vencer

@@ -86,6 +86,7 @@ export interface FichaSeccionProps {
     onChange?: (data: Record<string, any>) => void;
     onSubmit: (data: Record<string, string | boolean | File | null>) => void;
     loading?: boolean;
+    ultimaRevision?: string | null;
 }
 
 export interface FormCardProps {

@@ -17,6 +17,7 @@ export default function fichaTecnica({
     permisosGuardados,
     accesoriosGuardados = {},
     piezasGuardadas = {},
+    ultimasRevisiones,
     users,
     isAdmin,
 }: {
@@ -26,6 +27,7 @@ export default function fichaTecnica({
     permisosGuardados: Record<string, Record<string, string>>;
     accesoriosGuardados?: Record<string, Record<string, string>>;
     piezasGuardadas?: Record<string, Record<string, string>>;
+    ultimasRevisiones: Record<string, string | null>;
     users: any[];
     isAdmin: boolean;
 }) {
@@ -168,6 +170,7 @@ export default function fichaTecnica({
                         formType="expediente"
                         expediente={expedientesTecnicos[placa] || {}}
                         onSubmit={(data) => handleFormSubmit('expedientes', data, placa)}
+                        ultimaRevision={ultimasRevisiones.expediente}
                     />
 
                     <FichaSeccion
@@ -184,6 +187,7 @@ export default function fichaTecnica({
                         formType="accesorios"
                         expediente={accesoriosGuardados[placa]}
                         onSubmit={(data) => handleFormSubmit('accesorios', data, placa)}
+                        ultimaRevision={ultimasRevisiones.accesorios}
                     />
 
                     <FichaSeccion
@@ -192,6 +196,7 @@ export default function fichaTecnica({
                         formType="piezas"
                         expediente={piezasGuardadas[placa]}
                         onSubmit={(data) => handleFormSubmit('piezas', data, placa)}
+                        ultimaRevision={ultimasRevisiones.piezas}
                     />
                     {isAdmin && (
                         <ModalAsignacionUser

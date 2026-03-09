@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class VehiculoEspecificaciones extends Model
 {
     protected $table = 'vehiculo_especificaciones';
-    public $timestamps = false;
+    
     protected $fillable = [
         'user_id',
         'vehiculo_id',

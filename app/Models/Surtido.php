@@ -28,4 +28,14 @@ class Surtido extends Model
     {
         return $this->belongsTo(User::class);
     }
+
+    public function admin()
+    {
+        return $this->belongsTo(User::class, 'admin_id');
+    }
+
+    public function vehiculo()
+    {
+        return $this->belongsTo(Vehiculo::class, 'vehiculo_id', 'placa');
+    }
 }

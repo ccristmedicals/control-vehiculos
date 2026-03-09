@@ -48,15 +48,8 @@ class RevisionDiariaController extends Controller
             $revisionesSemanaActual[$dia][] = $revision;
         }
 
-        // 3. DATOS PARA EL HISTORIAL (EXCLUYENDO SEMANA ACTUAL)
+        // 3. DATOS PARA EL HISTORIAL (MOSTRANDO TODO INCLUIDO HOY)
         $historialAgrupado = $todasLasRevisiones
-            // --- NUEVO FILTRO AQUÍ ---
-            // "Rechazamos" (excluimos) las revisiones que estén dentro de la semana actual
-            // porque esas ya se muestran arriba en el formulario.
-            ->reject(function ($rev) use ($inicioSemana, $finalSemana) {
-                return Carbon::parse($rev->fecha_creacion)->between($inicioSemana, $finalSemana);
-            })
-            // -------------------------
             ->groupBy(function ($item) {
                 return Carbon::parse($item->fecha_creacion)->format('Y-m-d');
             })

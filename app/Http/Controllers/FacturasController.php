@@ -30,11 +30,9 @@ class FacturasController extends Controller
             ->map(fn($id) => trim($id))
             ->toArray();
 
-        $facturas = Factura::query()
+        $facturasQuery = Factura::query()
             ->where(function ($query) use ($vehiculo, $facturasAuditadasIds) {
-
                 $query->where('co_cli', $vehiculo->placa);
-
                 if (!empty($facturasAuditadasIds)) {
                     $query->orWhereIn('fact_num', $facturasAuditadasIds);
                 }
@@ -43,24 +41,30 @@ class FacturasController extends Controller
             ->whereNotIn('co_tran', ['000003'])
             ->whereDate('fec_emis', '>=', '2025-10-06')
             ->latest('fact_num')
-            ->get()
-            ->map(function ($factura) use ($vehiculo) {
-                
-                $auditoria = DB::table('auditoria_facturas')
-                    ->select('aprobado')
-                    ->where('fact_num', trim($factura->fact_num))
-                    ->first();
+            ->get();
 
-                return [
-                    'fact_num' => $factura->fact_num,
-                    'fec_emis' => $factura->fec_emis,
-                    'co_cli'   => trim($factura->co_cli),
-                    'tot_bruto'=> $factura->tot_bruto,
-                    'tot_neto' => $factura->tot_neto,
-                    'descripcion' => $factura->descripcion_limpia,
-                    'aprobado' => $auditoria->aprobado ?? false,
-                ];
-            });
+        $factNums = $facturasQuery->pluck('fact_num')->map(fn($id) => trim((string)$id))->unique()->toArray();
+
+        $auditoriasLocales = DB::table('auditoria_facturas')
+            ->select('fact_num', 'aprobado')
+            ->whereIn('fact_num', $factNums)
+            ->get()
+            ->keyBy(fn($item) => trim((string)$item->fact_num));
+
+        $facturas = $facturasQuery->map(function ($factura) use ($auditoriasLocales) {
+            $factNumTrimmed = trim((string)$factura->fact_num);
+            $auditoria = $auditoriasLocales->get($factNumTrimmed);
+
+            return [
+                'fact_num' => $factura->fact_num,
+                'fec_emis' => $factura->fec_emis,
+                'co_cli'   => trim($factura->co_cli),
+                'tot_bruto'=> $factura->tot_bruto,
+                'tot_neto' => $factura->tot_neto,
+                'descripcion' => $factura->descripcion_limpia,
+                'aprobado' => $auditoria->aprobado ?? false,
+            ];
+        });
 
         $conductor = $vehiculo->load('usuario:id,name')->toArray();
         $user = Auth::user();

@@ -5,15 +5,9 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use Inertia\Inertia;
 use App\Models\Vehiculo;
-use App\Models\Notificacion;
 use Illuminate\Http\Request;
-use App\Models\FacturaAuditoria;
-use App\Models\RevisionesDiarias;
 use Illuminate\Support\Facades\DB;
-use App\Helpers\NotificacionHelper;
-use App\Models\RevisionesSemanales;
 use App\Models\Surtido;
-use App\Models\User;
 
 class DashboardController extends Controller
 {
@@ -63,42 +57,51 @@ class DashboardController extends Controller
                 })
                 ->get();
 
+        $placas = $vehiculos->pluck('placa')->toArray();
+
+        $todasLasFacturas = DB::connection('sqlsrv')->table('factura')
+            ->select('fact_num', 'co_cli')
+            ->whereIn('co_cli', $placas)
+            ->where('anulada', 0)
+            ->whereDate('fec_emis', '>=', '2025-10-06')
+            ->where('co_tran', '<>', '000003')
+            ->get()
+            ->groupBy(fn($item) => trim((string)$item->co_cli));
+
+        $auditoriasLocales = DB::table('auditoria_facturas')
+            ->select('vehiculo_id', 'fact_num', 'aprobado')
+            ->whereIn('vehiculo_id', $placas)
+            ->get()
+            ->groupBy('vehiculo_id');
+
+        $revisadoDiarioHoy = DB::table('revisiones_diarias')
+            ->whereIn('vehiculo_id', $placas)
+            ->whereDate('fecha_creacion', Carbon::today())
+            ->pluck('vehiculo_id')
+            ->toArray();
+
         foreach ($vehiculos as $vehiculo) {
-            $facturas = DB::connection('sqlsrv')->table('factura')
-                ->select('fact_num')
-                ->where('co_cli', $vehiculo->placa)
-                ->where('anulada', 0)
-                ->whereDate('fec_emis', '>=', '2025-10-06')
-                ->where('co_tran', '<>', '000003')
-                ->get();
+            $placaTrimmed = trim((string)$vehiculo->placa);
+            $facturasVehiculo = $todasLasFacturas->get($placaTrimmed) ?? collect();
+            $factNums = $facturasVehiculo->pluck('fact_num')->map(fn($id) => trim((string) $id))->all();
 
-            $factNums = $facturas->pluck('fact_num')->map(fn($id) => trim((string) $id))->all();
+            $auditoriasVehiculo = $auditoriasLocales->get($vehiculo->placa) ?? collect();
 
-            $auditoriasPendientes = FacturaAuditoria::where('vehiculo_id', $vehiculo->placa)
+            $auditoriasPendientes = $auditoriasVehiculo
                 ->whereIn('fact_num', $factNums)
-                ->where(function ($q) {
-                    $q->whereNull('aprobado')->orWhere('aprobado', 0);
-                })
+                ->filter(fn($auditoria) => is_null($auditoria->aprobado) || $auditoria->aprobado == 0)
                 ->count();
 
             $vehiculo->imagenes_factura_pendientes = $auditoriasPendientes;
 
-            $factNumsAudit = DB::connection('mysql')->table('auditoria_facturas')
-                ->where('vehiculo_id', $vehiculo->placa)
-                ->pluck('fact_num')
-                ->map(fn($id) => trim((string) $id))
-                ->all();
+            $factNumsAudit = $auditoriasVehiculo->pluck('fact_num')->map(fn($id) => trim((string) $id))->all();
 
             $vehiculo->factura_pendiente = count(array_diff($factNums, $factNumsAudit));
 
             if (!$vehiculo->user_id)
                 continue;
 
-            $revisadoHoy = RevisionesDiarias::where('vehiculo_id', $vehiculo->placa)
-                ->whereDate('fecha_creacion', Carbon::today())
-                ->exists();
-
-            $vehiculo->revision_diaria = $revisadoHoy ?? false;
+            $vehiculo->revision_diaria = in_array($vehiculo->placa, $revisadoDiarioHoy);
         }
 
         // $notificaciones = $modo === 'admin'
@@ -161,18 +164,17 @@ class DashboardController extends Controller
         //     }
         // }
 
-        // incluir todos los registros de gasolina
-        $surtidos = Surtido::latest()->get();
+        // incluir todos los registros de gasolina limitados para evitar colapsos de memoria
+        $surtidos = Surtido::with(['user:id,name', 'admin:id,name', 'vehiculo:placa,modelo'])
+            ->latest()
+            ->limit(100)
+            ->get();
 
         $registros = $surtidos->map(function ($surtido) {
-            $user = User::find($surtido->user_id);
-            $admin = User::find($surtido->admin_id);
-            $vehiculo = Vehiculo::find($surtido->vehiculo_id);
-
             return [
                 'factura' => $surtido->fact_num,
                 'fecha' => $surtido->created_at->format('Y-m-d'),
-                'vehiculo' => $vehiculo->modelo ?? $surtido->vehiculo_id,
+                'vehiculo' => $surtido->vehiculo->modelo ?? $surtido->vehiculo_id,
                 'placa' => $surtido->vehiculo_id,
                 'precio' => $surtido->precio,
                 'km_actual' => $surtido->kilometraje,
@@ -181,8 +183,8 @@ class DashboardController extends Controller
                 'total' => $surtido->precio,
                 'observaciones' => $surtido->observaciones,
                 'diferencia' => $surtido->diferencia,
-                'conductor' => $user->name ?? 'Sin conductor',
-                'admin' => $admin->name ?? 'Sin supervisor',
+                'conductor' => $surtido->user->name ?? 'Sin conductor',
+                'admin' => $surtido->admin->name ?? 'Sin supervisor',
             ];
         });
         // dd($registros);

@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class VehiculoPiezas extends Model
 {
     protected $table = 'vehiculo_piezas';
-    public $timestamps = false;
 
     protected $fillable = [
         'vehiculo_id',
