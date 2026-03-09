@@ -36,10 +36,10 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
 RUN pecl install sqlsrv pdo_sqlsrv \
     && docker-php-ext-enable sqlsrv pdo_sqlsrv
 
-# 6. Instalar Composer (Copiando el ejecutable oficial)
+# 7. Instalar Composer (Copiando el ejecutable oficial)
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 7. Instalar Node.js y NPM (Copiando desde la imagen oficial de Node)
+# 8. Instalar Node.js y NPM (Copiando desde la imagen oficial de Node)
 COPY --from=node:20 /usr/local/bin/ /usr/local/bin/
 COPY --from=node:20 /usr/local/lib/node_modules/ /usr/local/lib/node_modules/
 
