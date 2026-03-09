@@ -72,32 +72,39 @@ class DashboardController extends Controller
             ->select('vehiculo_id', 'fact_num', 'aprobado')
             ->whereIn('vehiculo_id', $placas)
             ->get()
-            ->groupBy('vehiculo_id');
+            ->groupBy(fn($item) => trim((string)$item->vehiculo_id));
 
         $revisadoDiarioHoy = DB::table('revisiones_diarias')
             ->whereIn('vehiculo_id', $placas)
             ->whereDate('fecha_creacion', Carbon::today())
             ->pluck('vehiculo_id')
+            ->map(fn($id) => trim((string)$id))
             ->toArray();
 
         foreach ($vehiculos as $vehiculo) {
             $placaTrimmed = trim((string)$vehiculo->placa);
             $facturasVehiculo = $todasLasFacturas->get($placaTrimmed) ?? collect();
-            $factNums = $facturasVehiculo->pluck('fact_num')->map(fn($id) => trim((string) $id))->all();
+            $normalizeFact = fn($id) => ltrim(trim((string) $id), '0') ?: '0';
+
+            $factNums = $facturasVehiculo->pluck('fact_num')->map($normalizeFact)->all();
 
             $auditoriasVehiculo = $auditoriasLocales->get($vehiculo->placa) ?? collect();
 
-            $auditoriasPendientes = $auditoriasVehiculo
-                ->whereIn('fact_num', $factNums)
+            $auditoriasVehiculoNorm = $auditoriasVehiculo->map(function ($auditoria) use ($normalizeFact) {
+                $auditoria->fact_num_norm = $normalizeFact($auditoria->fact_num);
+                return $auditoria;
+            });
+
+            $auditoriasPendientes = $auditoriasVehiculoNorm
+                ->whereIn('fact_num_norm', $factNums)
                 ->filter(fn($auditoria) => is_null($auditoria->aprobado) || $auditoria->aprobado == 0)
                 ->count();
 
             $vehiculo->imagenes_factura_pendientes = $auditoriasPendientes;
 
-            $factNumsAuditAprobadas = $auditoriasVehiculo
+            $factNumsAuditAprobadas = $auditoriasVehiculoNorm
                 ->filter(fn($auditoria) => $auditoria->aprobado == 1)
-                ->pluck('fact_num')
-                ->map(fn($id) => trim((string) $id))
+                ->pluck('fact_num_norm')
                 ->all();
 
             $vehiculo->factura_pendiente = count(array_diff($factNums, $factNumsAuditAprobadas));
