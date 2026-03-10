@@ -42,6 +42,6 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # 8. Instalar Node.js y NPM (Copiando desde la imagen oficial de Node)
 COPY --from=node:20 /usr/local/bin/ /usr/local/bin/
 COPY --from=node:20 /usr/local/lib/node_modules/ /usr/local/lib/node_modules/
-RUN printf 'upload_max_filesize = 64M\npost_max_size = 512M\nmemory_limit = 1024M\nmax_execution_time = 300\n' > /usr/local/etc/php/conf.d/uploads-limits.ini
+RUN printf 'upload_max_filesize = 32M\npost_max_size = 512M\nmemory_limit = 1024M\nmax_execution_time = 300\n' > /usr/local/etc/php/conf.d/uploads-limits.ini
 
 WORKDIR /var/www
