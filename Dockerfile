@@ -103,8 +103,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     unixodbc-dev \
     # Limpieza de caché (apt-get clean para reducir tamaño)
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    printf 'upload_max_filesize = 32M\npost_max_size = 512M\nmemory_limit = 1024M\nmax_execution_time = 300\n' > /usr/local/etc/php/conf.d/uploads-limits.ini
-
+    && printf 'upload_max_filesize = 32M\npost_max_size = 512M\nmemory_limit = 1024M\nmax_execution_time = 300\n' > /usr/local/etc/php/conf.d/uploads-limits.ini
 
 # 9. Dockerfile layer caching (Base -> Deps -> Config -> Source code)
 # Copiar configuración custom PHP si hubiere se pondría aquí.
