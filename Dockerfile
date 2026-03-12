@@ -54,9 +54,9 @@ RUN cp .env.example .env && \
 FROM php:8.3.3-fpm AS production
 
 # 18. Add OCI labels
-LABEL org.opencontainers.image.source="https://github.com/organization/rendimiento-ejecutivo" \
-      org.opencontainers.image.description="Aplicacion central Rendimiento Ejecutivo (Laravel/React/Inertia)" \
-      org.opencontainers.image.vendor="MyCompany"
+LABEL org.opencontainers.image.source="https://github.com/ccristmedicals/control-vehiculos" \
+      org.opencontainers.image.description="Aplicacion Control Vehiculos (Laravel/React/Inertia)" \
+      org.opencontainers.image.vendor="CristMedicals"
 
 # 15. Derive the version from your project (opcional, en CI/CD pasamos --build-arg VERSION=...)
 ARG VERSION=1.0.0
