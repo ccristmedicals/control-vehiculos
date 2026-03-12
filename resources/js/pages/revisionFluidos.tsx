@@ -283,10 +283,16 @@ export default function revisionFluidos({ vehiculoId }: RevisionFluidosProps) {
                             }),
                         );
 
+                        const diaIndex = diasSemana.indexOf(dia);
+                        const diaDate = new Date();
+                        const currentDayIndex = (diaDate.getDay() + 6) % 7;
+                        diaDate.setDate(diaDate.getDate() + (diaIndex - currentDayIndex));
+                        const formattedDate = diaDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
                         return (
                             <div key={dia} className="py-2">
                                 <FichaSeccionFluidos
-                                    title={`Formulario - ${diasSemanaTexto[diasSemana.indexOf(dia)]}`}
+                                    title={`Formulario - ${diasSemanaTexto[diaIndex]} (${formattedDate})`}
                                     fields={fluidosFields}
                                     expediente={expediente}
                                     onSubmit={(formData) => handleSubmitFluidos(dia, formData)}
