@@ -66,8 +66,6 @@ ENV APP_VERSION=$VERSION
 WORKDIR /var/www
 
 # 6. Minimal packages & Production dependencies only / 10. Combine run commands & Clean cache / 13. Sort arguments
-# 5. No sudo & No debugging tools (Sin dev dependencies, solo lo necesario para PHP e interacciones con MSSQL/MySQL y Nginx Proxying)
-# 5. No sudo & No debugging tools (Sin dev dependencies, solo lo necesario para PHP e interacciones con MSSQL/MySQL y Nginx Proxying)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gnupg2 \
@@ -75,6 +73,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libfcgi-bin \
     libicu-dev \
     libpng-dev \
+    libjpeg-dev \
+    libfreetype6-dev \
+    libwebp-dev \
     libxml2-dev \
     libzip-dev \
     unixodbc-dev \
@@ -83,6 +84,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && echo "deb [arch=amd64,armhf,arm64 signed-by=/etc/apt/keyrings/microsoft.asc] https://packages.microsoft.com/debian/12/prod bookworm main" > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
     && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 \
+    # 1. Configurar GD con soporte para los formatos de imagen más comunes
+    && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    # 2. Instalar las extensiones
     && docker-php-ext-install \
     bcmath \
     gd \
@@ -90,18 +94,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     opcache \
     pdo_mysql \
     zip \
-    # Compilación manual para pdo_sqlsrv usando pecl
     && pecl install pdo_sqlsrv-5.12.0 sqlsrv-5.12.0 \
     && docker-php-ext-enable pdo_sqlsrv sqlsrv \
-    # Eliminamos los headers de compilación (-dev) que ya no se necesitan en runtime.
-    # Las librerías runtime (libicu72, libpng16, libxml2, libzip4) se mantienen automáticamente.
-    && apt-get purge -y --auto-remove \
-    libicu-dev \
-    libpng-dev \
-    libxml2-dev \
-    libzip-dev \
-    unixodbc-dev \
-    # Limpieza de caché (apt-get clean para reducir tamaño)
+    # 3. Limpieza segura: Eliminamos el purge agresivo y solo limpiamos las listas de apt y temporales
     && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     && printf 'upload_max_filesize = 32M\npost_max_size = 512M\nmemory_limit = 1024M\nmax_execution_time = 300\n' > /usr/local/etc/php/conf.d/uploads-limits.ini
 
