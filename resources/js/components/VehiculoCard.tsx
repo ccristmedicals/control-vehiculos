@@ -51,7 +51,7 @@ export default function VehiculoCard({ vehiculo }: { vehiculo: VehiculoCompleto 
                         {vehiculo.modelo}
                     </CardTitle>
                     <div className="flex items-center gap-1.5 mt-0.5 text-sm font-medium text-gray-500 dark:text-gray-400">
-                        <Badge variant="outline" className="px-1.5 h-5 font-mono uppercase tracking-wider bg-gray-50 dark:bg-gray-900">
+                        <Badge variant="outline" className="px-2 font-mono uppercase tracking-wider bg-gray-50 dark:bg-gray-900">
                             {vehiculo.placa}
                         </Badge>
                     </div>
