@@ -64,9 +64,11 @@ export function useFormLogic<T extends Record<string, string | boolean | File | 
     }, [formValues, fields]);
 
     const handleChange = (id: string, value: string | boolean | File | null) => {
-        const updated = { ...formValues, [id]: value };
-        setFormValues(updated);
-        onChange?.(updated);
+        setFormValues((prev) => {
+            const updated = { ...prev, [id]: value } as T;
+            onChange?.(updated);
+            return updated;
+        });
     };
 
     return { formValues, isEditing, hasFechasInvalidas, hasCamposIncompletos, handleChange };
