@@ -24,17 +24,7 @@ export default function VehiculoCard({ vehiculo }: { vehiculo: VehiculoCompleto 
             className="group relative h-full cursor-pointer overflow-hidden border-gray-200 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:ring-2 hover:ring-[#49af4e]/50 dark:border-gray-700 dark:bg-gray-800"
             onClick={() => router.get(`/fichaTecnica/${vehiculo.placa}`)}
         >
-            <CardHeader className="flex flex-row items-center pb-4">
-                <div className="relative">
-                    {!revision_diaria && (
-                        <div className="absolute -top-1 -right-1">
-                            <span className="relative flex h-3 w-3">
-                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
-                            </span>
-                        </div>
-                    )}
-                </div>
+            <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
                 <div className="flex-1 overflow-hidden">
                     <CardTitle className="truncate text-xl font-bold text-gray-900 transition-colors group-hover:text-[#49af4e] dark:text-white">
                         {vehiculo.modelo}
@@ -45,6 +35,16 @@ export default function VehiculoCard({ vehiculo }: { vehiculo: VehiculoCompleto 
                         </Badge>
                     </div>
                 </div>
+
+                {/* Indicador de alerta alineado a la derecha */}
+                {!revision_diaria && (
+                    <div className="mt-2 shrink-0">
+                        <span className="relative flex h-3 w-3">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500"></span>
+                        </span>
+                    </div>
+                )}
             </CardHeader>
 
             <CardContent className="space-y-4">
