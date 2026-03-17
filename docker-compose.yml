@@ -2,12 +2,9 @@ networks:
   control_vehiculos_net:
     driver: bridge
     internal: false
-  # Nos conectamos a la red del proxy principal
   proxy_network:
     external: true
 
-# 22. Named Volumes: Docker gestiona el almacenamiento y permisos internamente.
-# No requiere alineación de UID con el host. Funciona igual en cualquier servidor.
 volumes:
   storage_public:
 
@@ -21,14 +18,11 @@ services:
     image: control_vehiculos_app:latest
     networks:
       - control_vehiculos_net
-    # 19. Gestión de Entorno Segura (Uso de archivo .env)
     env_file:
       - .env
-    # 21. Exposición Mínima de Puertos: No se exponen puertos al host, solo dentro de su propia subnet
     expose:
       - '9000'
     volumes:
-      # Named Volume: permisos gestionados por Docker, portable a cualquier servidor
       - storage_public:/var/www/storage/app/public
     healthcheck:
       test: ['CMD', 'cgi-fcgi', '-bind', '-connect', '127.0.0.1:9000']
@@ -46,12 +40,10 @@ services:
     container_name: control_vehiculos_nginx
     networks:
       - control_vehiculos_net
-      - proxy_network # Nginx local pertenece a ambas redes para hacer de puente
-    # 21. Exposición. No exponemos puertos al host porque el proxy principal enruta internamente el tráfico
+      - proxy_network
     expose:
       - '80'
     volumes:
-      # Mismo volumen, solo lectura para Nginx
       - storage_public:/var/www/storage/app/public:ro
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://127.0.0.1/']
