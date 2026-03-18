@@ -316,7 +316,7 @@ const EnvioCard = ({
                     <div className="mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
                         <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-800/50">
                             <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">
-                                {isAdmin ? 'Evidencia del envío (Foto/Guía):' : 'Foto del repuesto recibido:'}
+                                {envio.estado === 'pendiente' ? 'Evidencia del envío (Foto/Guía):' : 'Foto del repuesto recibido:'}
                             </p>
 
                             <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
@@ -345,7 +345,7 @@ const EnvioCard = ({
                                     Cancelar
                                 </button>
                                 <button
-                                    onClick={() => cambiarEstado(isAdmin ? 'en_camino' : 'recibido')}
+                                    onClick={() => cambiarEstado(envio.estado === 'pendiente' ? 'en_camino' : 'recibido')}
                                     disabled={procesando || !archivo}
                                     className="flex items-center gap-2 rounded-lg bg-[#49af4e] px-4 py-1.5 text-xs font-bold text-white shadow-sm transition-transform hover:bg-[#3d9641] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >

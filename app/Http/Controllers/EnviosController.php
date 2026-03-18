@@ -62,7 +62,7 @@ class EnviosController extends Controller
                 $data['foto_envio'] = '/storage/' . $path;
             }
         } elseif ($request->estado === 'recibido') {
-            // User receiving
+            // User/Admin receiving
             if ($request->hasFile('foto_recibo')) {
                 $path = $request->file('foto_recibo')->store('envios', 'public');
                 $data['foto_recibo'] = '/storage/' . $path;
