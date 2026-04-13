@@ -19,9 +19,11 @@ use App\Helpers\FlashHelper;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
-
 class FacturasController extends Controller
 {
+    /**
+     * Listado de facturas para un vehículo.
+     */
     public function index(Request $request, Vehiculo $vehiculo)
     {
         $facturasAuditadasIds = DB::table('auditoria_facturas')
@@ -30,7 +32,10 @@ class FacturasController extends Controller
             ->map(fn($id) => trim($id))
             ->toArray();
 
-        $facturasQuery = Factura::query()
+        // Usamos el origen del vehículo para conectar a la base de datos correcta
+        $connection = $vehiculo->origen ?? 'sqlsrv_carros';
+
+        $facturasQuery = DB::connection($connection)->table('factura')
             ->where(function ($query) use ($vehiculo, $facturasAuditadasIds) {
                 $query->where('co_cli', $vehiculo->placa);
                 if (!empty($facturasAuditadasIds)) {
@@ -40,7 +45,7 @@ class FacturasController extends Controller
             ->where('anulada', 0)
             ->whereNotIn('co_tran', ['000003'])
             ->whereDate('fec_emis', '>=', '2025-10-06')
-            ->latest('fact_num')
+            ->orderByDesc('fact_num')
             ->get();
 
         $factNums = $facturasQuery->pluck('fact_num')->map(fn($id) => trim((string)$id))->unique()->toArray();
@@ -61,7 +66,7 @@ class FacturasController extends Controller
                 'co_cli'   => trim($factura->co_cli),
                 'tot_bruto'=> $factura->tot_bruto,
                 'tot_neto' => $factura->tot_neto,
-                'descripcion' => $factura->descripcion_limpia,
+                'descripcion' => $this->limpiarTexto($factura->descrip ?? ''),
                 'aprobado' => $auditoria->aprobado ?? false,
             ];
         });
@@ -80,15 +85,47 @@ class FacturasController extends Controller
         ]);
     }
 
-    public function show(Request $request, Factura $factura)
+    /**
+     * Detalle de una factura específica.
+     */
+    public function show(Request $request, $factura_num)
     {
+        // Nota: Para saber el origen, necesitamos buscar el cliente de la factura primero
+        // o recibir el vehículo en la ruta. Dado que Factura::show se accede desde /facturas/{factura}
+        // y el modelo Factura tiene co_cli, buscamos el vehículo para ver el origen.
+        
+        // Intentamos encontrar el vehículo por la factura en las bases de datos conocidas
+        $factura = null;
+        $connection = 'sqlsrv_carros';
+        
+        foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
+            $factura = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
+            if ($factura) {
+                $connection = $conn;
+                break;
+            }
+        }
+
+        if (!$factura) {
+             abort(404, 'Factura no encontrada');
+        }
+
         $facturaAuditada = FacturaAuditoria::where('fact_num', $factura->fact_num)->first();
 
-        $renglones = RenglonAuditoria::where('fact_num', $factura->fact_num)->get();
-        $auditados = $renglones->isNotEmpty();
+        $renglonesAuditados = RenglonAuditoria::where('fact_num', $factura->fact_num)->get();
+        $auditados = $renglonesAuditados->isNotEmpty();
 
-        $renglones = $auditados
-            ? $renglones->map(function ($r) {
+        if ($auditados) {
+            // Buscamos las descripciones de los repuestos en Profit para los renglones auditados
+            $co_arts = $renglonesAuditados->pluck('co_art')->map(fn($c) => trim($c))->toArray();
+            $descripciones = DB::connection($connection)->table('art')
+                ->whereIn('co_art', $co_arts)
+                ->pluck('art_des', 'co_art')
+                ->map(fn($d) => mb_convert_encoding($d, 'UTF-8', 'ISO-8859-1'))
+                ->toArray();
+
+            $renglones = $renglonesAuditados->map(function ($r) use ($descripciones) {
+                $co_art_trimmed = trim($r->co_art);
                 return [
                     'fact_num' => $r->fact_num,
                     'total_art' => $r->total_art,
@@ -97,29 +134,34 @@ class FacturasController extends Controller
                     'imagen' => $r->imagen,
                     'imagen_url' => $r->imagen ? Storage::url('uploads/auditorias/' . ltrim($r->imagen, '/')) : null,
                     'repuesto' => [
-                        'art_des' => isset($r->repuesto) ? mb_convert_encoding($r->repuesto->art_des, 'UTF-8', 'auto') : null,
-                    ],
-                ];
-            })
-            : RenglonFactura::with('repuesto')
-            ->select('fact_num', 'reng_num', 'co_art', 'total_art', 'reng_neto')
-            ->where('fact_num', $factura->fact_num)
-            ->get()
-            ->map(function ($r) {
-                return [
-                    'fact_num' => $r->fact_num,
-                    'total_art' => $r->total_art,
-                    'reng_neto' => $r->reng_neto,
-                    'co_art' => $r->co_art,
-                    'repuesto' => [
-                        'art_des' => isset($r->repuesto) ? mb_convert_encoding($r->repuesto->art_des, 'UTF-8', 'auto') : null,
+                        'art_des' => $descripciones[$co_art_trimmed] ?? $descripciones[str_pad($co_art_trimmed, 30)] ?? '—',
                     ],
                 ];
             });
+        } else {
+            $renglones = DB::connection($connection)->table('reng_fac')
+                ->leftJoin('art', 'reng_fac.co_art', '=', 'art.co_art')
+                ->select('reng_fac.fact_num', 'reng_fac.reng_num', 'reng_fac.co_art', 'reng_fac.total_art', 'reng_fac.reng_neto', 'art.art_des')
+                ->where('reng_fac.fact_num', $factura->fact_num)
+                ->get()
+                ->map(function ($r) {
+                    return [
+                        'fact_num' => $r->fact_num,
+                        'total_art' => $r->total_art,
+                        'reng_neto' => $r->reng_neto,
+                        'co_art' => $r->co_art,
+                        'repuesto' => [
+                            'art_des' => isset($r->art_des) ? mb_convert_encoding($r->art_des, 'UTF-8', 'ISO-8859-1') : null,
+                        ],
+                    ];
+                });
+        }
 
         $supervisor = User::find($facturaAuditada?->admin_id)?->name ?? '—';
-        $conductor = User::find($facturaAuditada?->user_id) ?? '—';
-        $vehiculo = Vehiculo::where('placa', $factura->co_cli)->first();
+        $conductor_model = User::find($facturaAuditada?->user_id);
+        $conductor = $conductor_model ? $conductor_model->name : '—';
+        
+        $vehiculo = Vehiculo::where('placa', trim($factura->co_cli))->first();
 
         $respaldo = [
             'id' => $vehiculo->usuario->id ?? Auth::user()->id,
@@ -127,9 +169,9 @@ class FacturasController extends Controller
         ];
 
         $adicionales = [
-            $adicional_1 = User::select('id', 'name')->find($vehiculo?->user_id_adicional_1) ?? null,
-            $adicional_2 = User::select('id', 'name')->find($vehiculo?->user_id_adicional_2) ?? null,
-            $adicional_3 = User::select('id', 'name')->find($vehiculo?->user_id_adicional_3) ?? null
+            User::select('id', 'name')->find($vehiculo?->user_id_adicional_1),
+            User::select('id', 'name')->find($vehiculo?->user_id_adicional_2),
+            User::select('id', 'name')->find($vehiculo?->user_id_adicional_3)
         ];
 
         $usuarioQuePaga = $facturaAuditada?->cubre
@@ -143,20 +185,20 @@ class FacturasController extends Controller
                 'co_cli' => trim($factura->co_cli),
                 'tot_bruto' => $factura->tot_bruto,
                 'tot_neto' => $factura->tot_neto,
-                'descripcion' => $factura->descripcion_limpia,
+                'descripcion' => $this->limpiarTexto($factura->descrip ?? ''),
                 'observaciones_res' => $facturaAuditada->observaciones_res ?? null,
                 'observaciones_admin' => $facturaAuditada->observaciones_admin ?? null,
-                'aprobado' => $facturaAuditada->aprobado ?? false,
+                'aprobado' => (bool) $facturaAuditada?->aprobado,
                 'supervisor' => $supervisor,
                 'supervisores' => User::role('admin')->whereNotIn('email', [29960819, 26686507, 25025870])->select('id', 'name')->get(),
-                'cubre' => $facturaAuditada->cubre ?? true,
+                'cubre' => (bool) ($facturaAuditada->cubre ?? true),
                 'cubre_usuario' => $usuarioQuePaga,
                 'kilometraje' => $facturaAuditada->kilometraje ?? null
             ],
             'renglones' => $renglones,
             'auditados' => $auditados,
             'vehiculo' => [
-                'placa' => $factura->co_cli,
+                'placa' => trim($factura->co_cli),
                 'conductor' => $conductor,
                 'respaldo' => $respaldo,
                 'adicionales' => $adicionales
@@ -165,21 +207,31 @@ class FacturasController extends Controller
         ]);
     }
 
-    public function storeAuditoria(Request $request, Factura $factura)
+    public function storeAuditoria(Request $request, $factura_num)
     {
-        
-        return FlashHelper::try(function () use ($request, $factura) {
+         // Para auditoría, necesitamos la factura local o al menos saber a qué vehículo pertenece
+         // Buscamos la factura en las DBs para obtener el co_cli
+         $factura = null;
+         $connection = 'sqlsrv_carros';
+         foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
+             $factura = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
+             if ($factura) {
+                 $connection = $conn;
+                 break;
+             }
+         }
+
+         if (!$factura) {
+             return back()->with('error', 'Factura no encontrada');
+         }
+
+        return FlashHelper::try(function () use ($request, $factura, $connection) {
             DB::beginTransaction();
 
             $imagenes = $request->file('imagenes') ?? [];
             if (empty($imagenes)) {
                 throw new \Exception('Debes subir al menos una imagen por producto');
             } 
-            foreach ($imagenes as $co_art => $file) {
-                if (!$file->isValid()) {
-                    throw new \Exception("La imagen de {$co_art} no es válida");
-                }
-            }
             
             $request->validate([
                 'observacion' => 'nullable|string',
@@ -187,14 +239,22 @@ class FacturasController extends Controller
                 'kilometraje' => 'required|numeric'
             ]);
             
-            FacturaAuditoria::create([
-                'fact_num' => $factura->fact_num,
-                'vehiculo_id' => $factura->co_cli,
-                'user_id' => $request->user()->id,
-                'observaciones_res' => $request->input('observacion'),
-                'kilometraje' => $request->kilometraje
-            ]);
+            FacturaAuditoria::updateOrCreate(
+                ['fact_num' => trim($factura->fact_num)],
+                [
+                    'vehiculo_id' => trim($factura->co_cli),
+                    'user_id' => $request->user()->id,
+                    'observaciones_res' => $request->input('observacion'),
+                    'kilometraje' => $request->kilometraje,
+                    'aprobado' => false
+                ]
+            );
             
+            $renglonesProfit = DB::connection($connection)->table('reng_fac')
+                ->where('fact_num', $factura->fact_num)
+                ->get()
+                ->keyBy(fn($r) => trim((string)$r->co_art));
+
             $datos = [];
             $multimedia = new Multimedia;
             
@@ -205,25 +265,20 @@ class FacturasController extends Controller
                     throw new \Exception("Error al guardar la imagen de {$co_art}");
                 }
 
+                $co_art_trimmed = trim((string)$co_art);
+                $detalleProfit = $renglonesProfit->get($co_art_trimmed);
+
                 $datos[] = [
-                    'fact_num' => $factura->fact_num,
-                    'co_art' => $co_art,
+                    'fact_num' => trim($factura->fact_num),
+                    'co_art' => $co_art_trimmed,
                     'imagen' => $nombre,
-                    'reng_neto' => $factura->renglones()->where('co_art', $co_art)->value('reng_neto') ?? 0,
-                    'total_art' => $factura->renglones()->where('co_art', $co_art)->value('total_art') ?? 0,
-                    'reng_num' => $factura->renglones()->where('co_art', $co_art)->value('reng_num') ?? 0,
+                    'reng_neto' => $detalleProfit ? $detalleProfit->reng_neto : 0,
+                    'total_art' => $detalleProfit ? $detalleProfit->total_art : 0,
+                    'reng_num' => $detalleProfit ? $detalleProfit->reng_num : 0,
                 ];
             }
 
             RenglonAuditoria::insert($datos);
-
-            // NotificacionHelper::emitirImagenFacturaSubida(
-            //     $factura->co_cli,
-            //     $request->user()->name,
-            //     $factura->fact_num,
-            //     count($imagenes)
-            // );
-
             DB::commit();
         }, 'Auditoría registrada con éxito.', 'Error al registrar la auditoría.');
     }
@@ -254,5 +309,11 @@ class FacturasController extends Controller
 
             $factura->save();
         }, 'Auditoría actualizada correctamente.', 'Error al actualizar la auditoría.');
+    }
+
+    private function limpiarTexto($texto)
+    {
+        $limpio = trim(preg_replace('/[\x00-\x1F\x7F].*/u', '', (string)$texto));
+        return trim(preg_replace('/D\/.*/u', '', $limpio));
     }
 }

@@ -276,6 +276,7 @@ export type VehiculoConductor = VehiculoBase & {
 };
 
 export type VehiculoCompleto = VehiculoConductor & {
+    placa_visual: string;
     tipo: 'CARRO' | 'MOTO';
     usuario?: UsuarioAsignado | null;
     usuario_adicional1?: UsuarioAsignado | null;

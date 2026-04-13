@@ -24,6 +24,7 @@ class Vehiculo extends Model
         'user_id_adicional_1',
         'user_id_adicional_2',
         'user_id_adicional_3',
+        'origen',
     ];
 
     /**

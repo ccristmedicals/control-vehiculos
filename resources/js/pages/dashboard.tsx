@@ -11,11 +11,14 @@ import { FileDown, FilterX, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 export default function Dashboard() {
-    const { vehiculos, registros, modo } = usePage<{
+    // Extraemos 'auth' para conocer el tipo del usuario desde el backend
+    const { vehiculos, registros, modo, auth } = usePage<{
         vehiculos: any[];
         registros: any[];
         modo: string;
+        auth: any;
     }>().props;
+
     const [fechaDesde, setFechaDesde] = useState('');
     const [fechaHasta, setFechaHasta] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -24,12 +27,14 @@ export default function Dashboard() {
     const vehiculosFiltrados = useMemo(() => {
         const term = searchTerm.toLowerCase();
         return vehiculos.filter((v) => {
-            const placa = v.placa?.toLowerCase() || '';
+            const placa = v.placa_visual?.toLowerCase() || v.placa?.toLowerCase() || '';
             const nombre = v.nombre?.toLowerCase() || '';
             const tipo = v.tipo?.toLowerCase() || '';
             const modelo = v.modelo?.toLowerCase() || '';
 
             const matchesSearch = placa.includes(term) || nombre.includes(term) || modelo.includes(term) || tipo.includes(term);
+
+            // El filtro de tipo solo aplica si estamos en modo TODO o si coincide
             const matchesType = filtroTipo === 'TODO' || v.tipo === filtroTipo;
 
             return matchesSearch && matchesType;
@@ -91,18 +96,23 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="relative w-full md:w-48">
-                            <label className="mb-2 block text-xs font-bold tracking-wider text-muted-foreground uppercase">Tipo de Vehículo</label>
-                            <select
-                                value={filtroTipo}
-                                onChange={(e) => setFiltroTipo(e.target.value as any)}
-                                className="h-11 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:ring-2 focus:ring-[#49af4e] focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:bg-gray-800 dark:text-white"
-                            >
-                                <option value="TODO">Todos</option>
-                                <option value="CARRO">Carros</option>
-                                <option value="MOTO">Motos</option>
-                            </select>
-                        </div>
+                        {/* CONDICIONAL: Solo mostramos el selector si el usuario NO tiene tipo asignado (Super Admin) */}
+                        {!auth.user.tipo && (
+                            <div className="relative w-full md:w-48">
+                                <label className="mb-2 block text-xs font-bold tracking-wider text-muted-foreground uppercase">
+                                    Tipo de Vehículo
+                                </label>
+                                <select
+                                    value={filtroTipo}
+                                    onChange={(e) => setFiltroTipo(e.target.value as any)}
+                                    className="h-11 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm ring-offset-background focus:ring-2 focus:ring-[#49af4e] focus:ring-offset-2 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-white"
+                                >
+                                    <option value="TODO">Todos</option>
+                                    <option value="CARRO">Carros</option>
+                                    <option value="MOTO">Motos</option>
+                                </select>
+                            </div>
+                        )}
 
                         {modo === 'admin' && (
                             <div className="flex flex-col gap-4 sm:flex-row md:flex-[0_0_auto]">

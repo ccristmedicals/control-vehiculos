@@ -31,7 +31,7 @@ export default function VehiculoCard({ vehiculo }: { vehiculo: VehiculoCompleto 
                     </CardTitle>
                     <div className="mt-0.5 flex items-center gap-1.5 text-sm font-medium text-gray-500 dark:text-gray-400">
                         <Badge variant="outline" className="bg-gray-50 px-2 font-mono tracking-wider uppercase dark:bg-gray-900">
-                            {vehiculo.placa}
+                            {vehiculo.placa_visual}
                         </Badge>
                     </div>
                 </div>

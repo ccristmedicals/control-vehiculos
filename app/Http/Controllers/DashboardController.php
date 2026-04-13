@@ -16,57 +16,75 @@ class DashboardController extends Controller
         $user = $request->user();
         $modo = $user->hasRole('admin') ? 'admin' : 'user';
 
-        $vehiculos = $modo === 'admin'
-            ? Vehiculo::with([
-                'usuario',
-                'usuarioAdicional1',
-                'usuarioAdicional2',
-                'usuarioAdicional3',
-            ])
-                ->when($user->tipo, function ($query) use ($user) {
-                    $query->where('tipo', $user->tipo);
-                })
-                ->withCount([
-                    'observaciones as observaciones_no_resueltas' => function ($query) {
-                        $query->where('resuelto', false);
-                    },
-                    'envios as envios_pendientes' => function ($query) {
-                        $query->where('estado', 'pendiente');
-                    }
-                ])
-                ->get()
-            : Vehiculo::with([
-                'usuario',
-                'usuarioAdicional1',
-                'usuarioAdicional2',
-                'usuarioAdicional3',
-            ])
-                ->withCount([
-                    'observaciones as observaciones_no_resueltas' => function ($query) {
-                        $query->where('resuelto', false);
-                    },
-                    'envios as envios_pendientes' => function ($query) {
-                        $query->where('estado', 'pendiente');
-                    }
-                ])
-                ->where(function ($query) use ($user) {
-                    $query->where('user_id', $user->id)
-                        ->orWhere('user_id_adicional_1', $user->id)
-                        ->orWhere('user_id_adicional_2', $user->id)
-                        ->orWhere('user_id_adicional_3', $user->id);
-                })
-                ->get();
+        // 1. CONSTRUCCIÓN BASE DE LA CONSULTA
+        $query = Vehiculo::with([
+            'usuario',
+            'usuarioAdicional1',
+            'usuarioAdicional2',
+            'usuarioAdicional3',
+        ])
+            ->whereNotNull('origen')
+            ->whereNotIn('placa', ['000', '0001']);
+
+        // 2. APLICACIÓN DE FILTROS SEGÚN EL ROL Y EL PERFIL
+        if ($modo === 'admin') {
+            // Si el admin tiene tipo (ej. MOTO), filtramos. Si es null, lo ve todo.
+            $query->when($user->tipo, function ($q) use ($user) {
+                $q->where('tipo', $user->tipo);
+            });
+        } else {
+            // Conductor: Ve solo los suyos, filtrados por su perfil de tipo
+            $query->where(function ($q) use ($user) {
+                $q->where('user_id', $user->id)
+                    ->orWhere('user_id_adicional_1', $user->id)
+                    ->orWhere('user_id_adicional_2', $user->id)
+                    ->orWhere('user_id_adicional_3', $user->id);
+            })->when($user->tipo, function ($q) use ($user) {
+                $q->where('tipo', $user->tipo);
+            });
+        }
+
+        // 3. EJECUCIÓN Y CONTEOS
+        $vehiculos = $query->withCount([
+            'observaciones as observaciones_no_resueltas' => function ($q) {
+                $q->where('resuelto', false);
+            },
+            'envios as envios_pendientes' => function ($q) {
+                $q->where('estado', 'pendiente');
+            }
+        ])->get();
 
         $placas = $vehiculos->pluck('placa')->toArray();
 
-        $todasLasFacturas = DB::connection('sqlsrv')->table('factura')
-            ->select('fact_num', 'co_cli')
+        // 4. BÚSQUEDA DE RIF PARA PLACA VISUAL
+        $datosClientes = DB::table('clientes')
             ->whereIn('co_cli', $placas)
+            ->pluck('rif', 'co_cli');
+
+        $placasMotos = $vehiculos->where('origen', 'sqlsrv_motos')->pluck('placa')->toArray();
+        $placasCarros = $vehiculos->where('origen', 'sqlsrv_carros')->pluck('placa')->toArray();
+
+        $facturasMotos = !empty($placasMotos)
+            ? DB::connection('sqlsrv_motos')->table('factura')
+            ->select('fact_num', 'co_cli')
+            ->whereIn('co_cli', $placasMotos)
             ->where('anulada', 0)
             ->whereDate('fec_emis', '>=', '2025-10-06')
             ->where('co_tran', '<>', '000003')
             ->get()
-            ->groupBy(fn($item) => trim((string)$item->co_cli));
+            : collect();
+
+        $facturasCarros = !empty($placasCarros)
+            ? DB::connection('sqlsrv_carros')->table('factura')
+            ->select('fact_num', 'co_cli')
+            ->whereIn('co_cli', $placasCarros)
+            ->where('anulada', 0)
+            ->whereDate('fec_emis', '>=', '2025-10-06')
+            ->where('co_tran', '<>', '000003')
+            ->get()
+            : collect();
+
+        $todasLasFacturas = $facturasMotos->merge($facturasCarros)->groupBy(fn($item) => trim((string)$item->co_cli));
 
         $auditoriasLocales = DB::table('auditoria_facturas')
             ->select('vehiculo_id', 'fact_num', 'aprobado')
@@ -83,6 +101,11 @@ class DashboardController extends Controller
 
         foreach ($vehiculos as $vehiculo) {
             $placaTrimmed = trim((string)$vehiculo->placa);
+
+            // Asignación de Placa Visual (RIF)
+            $rifVehiculo = trim((string)($datosClientes[$placaTrimmed] ?? ''));
+            $vehiculo->placa_visual = !empty($rifVehiculo) ? $rifVehiculo : $placaTrimmed;
+
             $facturasVehiculo = $todasLasFacturas->get($placaTrimmed) ?? collect();
             $normalizeFact = fn($id) => ltrim(trim((string) $id), '0') ?: '0';
 
@@ -177,6 +200,7 @@ class DashboardController extends Controller
 
         // incluir todos los registros de gasolina limitados para evitar colapsos de memoria
         $surtidos = Surtido::with(['user:id,name', 'admin:id,name', 'vehiculo:placa,modelo'])
+            ->whereNotIn('vehiculo_id', ['000', '0001'])
             ->latest()
             ->limit(100)
             ->get();
@@ -198,7 +222,7 @@ class DashboardController extends Controller
                 'admin' => $surtido->admin->name ?? 'Sin supervisor',
             ];
         });
-        // dd($registros);
+
         return Inertia::render('dashboard', [
             'vehiculos' => $vehiculos,
             'registros' => $registros,
@@ -208,6 +232,7 @@ class DashboardController extends Controller
                 'user' => [
                     'id' => $user->id,
                     'name' => $user->name,
+                    'tipo' => $user->tipo, // Incluido por si deseas usarlo en React
                     'is_admin' => $user->hasRole('admin'),
                 ],
             ],

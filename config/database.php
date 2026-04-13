@@ -109,6 +109,30 @@ return [
             'collation' => 'SQL_Latin1_General_CP1_CI_AS',
         ],
 
+        'sqlsrv_motos' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DBR_HOST'),
+            'port' => env('DBR_PORT'),
+            'database' => env('DBR_DATABASE_MOTOS'),
+            'username' => env('DBR_USERNAME'),
+            'password' => env('DBR_PASSWORD'),
+            'trust_server_certificate' => true,
+            'charset' => 'utf8',
+            'collation' => 'SQL_Latin1_General_CP1_CI_AS',
+        ],
+
+        'sqlsrv_carros' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DBR_HOST'),
+            'port' => env('DBR_PORT'),
+            'database' => env('DBR_DATABASE_CARROS'),
+            'username' => env('DBR_USERNAME'),
+            'password' => env('DBR_PASSWORD'),
+            'trust_server_certificate' => true,
+            'charset' => 'utf8',
+            'collation' => 'SQL_Latin1_General_CP1_CI_AS',
+        ],
+
     ],
 
     /*

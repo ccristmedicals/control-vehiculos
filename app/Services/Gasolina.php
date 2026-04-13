@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Helpers\ProfitLogger;
+use App\Services\DatabaseConnectionManager;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Ramsey\Uuid\Uuid;
 
 class Gasolina
@@ -13,49 +15,71 @@ class Gasolina
 
     public function registrarFacturaConRenglon($kilometraje, $descrip, $saldo, $co_cli, $cedula, $admin, $diferencia, $cant_litros)
     {
-        DB::connection('sqlsrv')->beginTransaction();
+        $co_cli = trim($co_cli); // Aseguramos que no haya espacios en blanco ocultos
+        $connection = $this->getConnection($co_cli);
+
+        // NUEVA VALIDACIÓN: Confirmar que el cliente existe en Profit antes de insertar
+        $clienteExiste = DB::connection($connection)->table('clientes')->where('co_cli', $co_cli)->exists();
+
+        if (!$clienteExiste) {
+            throw new \Exception("El vehículo con placa {$co_cli} no existe en la base de datos destino ({$connection}). Probablemente fue eliminado de Profit.");
+        }
+
+        DB::connection($connection)->beginTransaction();
         try {
             $rowguid = (string) Uuid::uuid4();
-            $co_ven = $this->co_ven($cedula);
+            $co_ven = $this->co_ven($cedula, $connection);
 
-            $fact_num = DB::connection('sqlsrv')->select("
+            $fact_num = DB::connection($connection)->select("
                 SELECT ISNULL(MAX(fact_num), 0) + 1 AS nuevo
                 FROM factura WITH (UPDLOCK, HOLDLOCK)
                 WHERE fact_num <> 9446
             ")[0]->nuevo;
 
-            $num_doc = DB::connection('sqlsrv')->select("
+            $num_doc = DB::connection($connection)->select("
                 SELECT ISNULL(MAX(num_doc), 0) + 1 AS nuevo
                 FROM reng_fac WITH (UPDLOCK, HOLDLOCK)
             ")[0]->nuevo;
 
-            $datosFactura = $this->construir_factura($kilometraje, $descrip, $saldo, $co_cli, $co_ven, $admin, $diferencia, $fact_num, $rowguid);
-            $datosRenglon = $this->construir_renglon($fact_num, $cant_litros, $num_doc, $saldo, $rowguid);
+            $datosFactura = $this->construir_factura($kilometraje, $descrip, $saldo, $co_cli, $co_ven, $admin, $diferencia, $fact_num, $rowguid, $connection);
+            $datosRenglon = $this->construir_renglon($fact_num, $cant_litros, $num_doc, $saldo, $rowguid, $connection);
             $datosDocumento = $this->construir_documento($fact_num, $co_cli, $co_ven, $saldo, $rowguid);
 
-            DB::connection('sqlsrv')->table('factura')->insert($datosFactura);
-            DB::connection('sqlsrv')->table('reng_fac')->insert($datosRenglon);
-            DB::connection('sqlsrv')->table('docum_cc')->insert($datosDocumento);
-            DB::connection('sqlsrv')->table('pistas')->insert(ProfitLogger::pista('FACTURA', $fact_num, 'I', 'VEHI24', $rowguid, $admin));
+            DB::connection($connection)->table('factura')->insert($datosFactura);
+            DB::connection($connection)->table('reng_fac')->insert($datosRenglon);
+            DB::connection($connection)->table('docum_cc')->insert($datosDocumento);
+            DB::connection($connection)->table('pistas')->insert(ProfitLogger::pista('FACTURA', $fact_num, 'I', $connection === 'sqlsrv_motos' ? 'MOTOS' : 'VEHICULO', $rowguid, $admin));
 
-            DB::connection('sqlsrv')->commit();
+            DB::connection($connection)->commit();
             return $datosFactura['fact_num'];
         } catch (\Exception $e) {
-            DB::connection('sqlsrv')->rollBack();
-            dd($e);
+            DB::connection($connection)->rollBack();
+            Log::error('Error al registrar factura de gasolina', [
+                'co_cli' => $co_cli,
+                'connection' => $connection,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
         }
     }
 
-    public function co_ven($cedula)
+    public function co_ven($cedula, $connection)
     {
-        $co_ven = DB::connection('sqlsrv')->select("
+        $co_ven = DB::connection($connection)->select("
             SELECT co_ven FROM vendedor WHERE cedula=?
         ", [$cedula]);
         return $co_ven[0]->co_ven ?? "GAS";
     }
 
-    public function construir_factura($kilometraje, $descrip, $saldo, $co_cli, $co_ven, $admin, $diferencia, $fact_num, $rowguid)
+    private function getConnection($co_cli)
     {
+        return DatabaseConnectionManager::getConnectionForVehiculo(trim($co_cli));
+    }
+
+    public function construir_factura($kilometraje, $descrip, $saldo, $co_cli, $co_ven, $admin, $diferencia, $fact_num, $rowguid, $connection)
+    {
+        $forma_pag = '01';
+        $co_tran = '03';
         $factura = [
             "fact_num" => $fact_num,
             "contrib" => 1,
@@ -71,9 +95,9 @@ class Gasolina
             "fec_venc" => Carbon::today()->format('d-m-Y H:i:s'),
             "co_cli" => $co_cli,
             "co_ven" => $co_ven,
-            "co_tran" => "000003",
+            "co_tran" => $co_tran,
             "dir_ent" => "",
-            "forma_pag" => "000001",
+            "forma_pag" => $forma_pag,
             "tot_bruto" => $saldo,
             "tot_neto" => $saldo,
             "glob_desc" => 0,
@@ -141,8 +165,9 @@ class Gasolina
         return $factura;
     }
 
-    public function construir_renglon($fact_num, $cant_litros, $num_doc, $saldo, $rowguid)
+    public function construir_renglon($fact_num, $cant_litros, $num_doc, $saldo, $rowguid, $connection)
     {
+        $co_art = ($connection === 'sqlsrv_motos') ? 'MT0000' : 'CAR0001';
         $renglon = [
             "fact_num" => $fact_num,
             "reng_num" => 1,
@@ -150,7 +175,7 @@ class Gasolina
             "tipo_doc" => "E",
             "reng_doc" => 1,
             "num_doc" => $num_doc,
-            "co_art" => "00000006",
+            "co_art" => $co_art,
             "co_alma" => "01",
             "total_art" => $cant_litros,
             "stotal_art" => 0,
