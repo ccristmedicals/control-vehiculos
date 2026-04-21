@@ -111,7 +111,7 @@ class DashboardController extends Controller
 
             $factNums = $facturasVehiculo->pluck('fact_num')->map($normalizeFact)->all();
 
-            $auditoriasVehiculo = $auditoriasLocales->get($vehiculo->placa) ?? collect();
+            $auditoriasVehiculo = $auditoriasLocales->get($placaTrimmed) ?? collect();
 
             $auditoriasVehiculoNorm = $auditoriasVehiculo->map(function ($auditoria) use ($normalizeFact) {
                 $auditoria->fact_num_norm = $normalizeFact($auditoria->fact_num);
@@ -132,10 +132,10 @@ class DashboardController extends Controller
 
             $vehiculo->factura_pendiente = count(array_diff($factNums, $factNumsAuditAprobadas));
 
+            $vehiculo->revision_diaria = in_array($placaTrimmed, $revisadoDiarioHoy);
+
             if (!$vehiculo->user_id)
                 continue;
-
-            $vehiculo->revision_diaria = in_array($vehiculo->placa, $revisadoDiarioHoy);
         }
 
         // $notificaciones = $modo === 'admin'

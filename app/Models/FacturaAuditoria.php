@@ -10,6 +10,7 @@ class FacturaAuditoria extends Model
 
     protected $fillable = [
         'fact_num',
+        'db_origen',
         'vehiculo_id',
         'user_id',
         'admin_id',

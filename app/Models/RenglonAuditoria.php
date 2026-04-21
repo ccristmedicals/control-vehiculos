@@ -10,6 +10,7 @@ class RenglonAuditoria extends Model
 
     protected $fillable = [
         'fact_num',
+        'db_origen',
         'reng_num',
         'co_art',
         'reng_neto',

@@ -26,14 +26,16 @@ class FacturasController extends Controller
      */
     public function index(Request $request, Vehiculo $vehiculo)
     {
+        // Usamos el origen del vehículo para conectar a la base de datos correcta
+        $connection = $vehiculo->origen ?? 'sqlsrv_carros';
+
+        // Filtrar por db_origen evita traer fact_nums de la otra DB que colisionen
         $facturasAuditadasIds = DB::table('auditoria_facturas')
             ->where('vehiculo_id', $vehiculo->placa)
+            ->where('db_origen', $connection)
             ->pluck('fact_num')
             ->map(fn($id) => trim($id))
             ->toArray();
-
-        // Usamos el origen del vehículo para conectar a la base de datos correcta
-        $connection = $vehiculo->origen ?? 'sqlsrv_carros';
 
         $facturasQuery = DB::connection($connection)->table('factura')
             ->where(function ($query) use ($vehiculo, $facturasAuditadasIds) {
@@ -50,8 +52,10 @@ class FacturasController extends Controller
 
         $factNums = $facturasQuery->pluck('fact_num')->map(fn($id) => trim((string)$id))->unique()->toArray();
 
+        // Filtrar por db_origen para no mezclar auditorías de distintas bases con mismo fact_num
         $auditoriasLocales = DB::table('auditoria_facturas')
             ->select('fact_num', 'aprobado')
+            ->where('db_origen', $connection)
             ->whereIn('fact_num', $factNums)
             ->get()
             ->keyBy(fn($item) => trim((string)$item->fact_num));
@@ -90,29 +94,41 @@ class FacturasController extends Controller
      */
     public function show(Request $request, $factura_num)
     {
-        // Nota: Para saber el origen, necesitamos buscar el cliente de la factura primero
-        // o recibir el vehículo en la ruta. Dado que Factura::show se accede desde /facturas/{factura}
-        // y el modelo Factura tiene co_cli, buscamos el vehículo para ver el origen.
-        
-        // Intentamos encontrar el vehículo por la factura en las bases de datos conocidas
+        // Primero buscamos auditoría local para obtener db_origen y evitar buscar en ambas DBs.
+        // Si hay colisión (mismo fact_num en MOTOS y VEHICULO), db_origen discrimina correctamente.
+        $facturaAuditada = FacturaAuditoria::where('fact_num', $factura_num)->first();
+
         $factura = null;
-        $connection = 'sqlsrv_carros';
-        
-        foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
-            $factura = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
-            if ($factura) {
-                $connection = $conn;
-                break;
+        $connection = $facturaAuditada?->db_origen;
+
+        if ($connection) {
+            $factura = DB::connection($connection)->table('factura')->where('fact_num', $factura_num)->first();
+        }
+
+        // Sin auditoría previa o no encontrada en la DB registrada: buscar en ambas
+        if (!$factura) {
+            $connection = null;
+            foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
+                $factura = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
+                if ($factura) {
+                    $connection = $conn;
+                    break;
+                }
             }
         }
 
         if (!$factura) {
-             abort(404, 'Factura no encontrada');
+            abort(404, 'Factura no encontrada');
         }
 
-        $facturaAuditada = FacturaAuditoria::where('fact_num', $factura->fact_num)->first();
+        // Re-fetch con db_origen para garantizar que obtenemos la auditoría correcta
+        $facturaAuditada = FacturaAuditoria::where('fact_num', $factura->fact_num)
+            ->where('db_origen', $connection)
+            ->first();
 
-        $renglonesAuditados = RenglonAuditoria::where('fact_num', $factura->fact_num)->get();
+        $renglonesAuditados = RenglonAuditoria::where('fact_num', $factura->fact_num)
+            ->where('db_origen', $connection)
+            ->get();
         $auditados = $renglonesAuditados->isNotEmpty();
 
         if ($auditados) {
@@ -209,21 +225,30 @@ class FacturasController extends Controller
 
     public function storeAuditoria(Request $request, $factura_num)
     {
-         // Para auditoría, necesitamos la factura local o al menos saber a qué vehículo pertenece
-         // Buscamos la factura en las DBs para obtener el co_cli
-         $factura = null;
-         $connection = 'sqlsrv_carros';
-         foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
-             $factura = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
-             if ($factura) {
-                 $connection = $conn;
-                 break;
-             }
-         }
+        // Buscar primero en auditoría local para usar db_origen conocido
+        $auditExistente = FacturaAuditoria::where('fact_num', $factura_num)->first();
 
-         if (!$factura) {
-             return back()->with('error', 'Factura no encontrada');
-         }
+        $factura = null;
+        $connection = $auditExistente?->db_origen;
+
+        if ($connection) {
+            $factura = DB::connection($connection)->table('factura')->where('fact_num', $factura_num)->first();
+        }
+
+        if (!$factura) {
+            $connection = null;
+            foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
+                $factura = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
+                if ($factura) {
+                    $connection = $conn;
+                    break;
+                }
+            }
+        }
+
+        if (!$factura) {
+            return back()->with('error', 'Factura no encontrada');
+        }
 
         return FlashHelper::try(function () use ($request, $factura, $connection) {
             DB::beginTransaction();
@@ -231,16 +256,17 @@ class FacturasController extends Controller
             $imagenes = $request->file('imagenes') ?? [];
             if (empty($imagenes)) {
                 throw new \Exception('Debes subir al menos una imagen por producto');
-            } 
-            
+            }
+
             $request->validate([
                 'observacion' => 'nullable|string',
                 'imagenes.*' => 'image|max:5120',
                 'kilometraje' => 'required|numeric'
             ]);
-            
+
+            // db_origen incluido en el lookup para evitar colisión entre MOTOS y VEHICULO
             FacturaAuditoria::updateOrCreate(
-                ['fact_num' => trim($factura->fact_num)],
+                ['fact_num' => trim($factura->fact_num), 'db_origen' => $connection],
                 [
                     'vehiculo_id' => trim($factura->co_cli),
                     'user_id' => $request->user()->id,
@@ -249,7 +275,7 @@ class FacturasController extends Controller
                     'aprobado' => false
                 ]
             );
-            
+
             $renglonesProfit = DB::connection($connection)->table('reng_fac')
                 ->where('fact_num', $factura->fact_num)
                 ->get()
@@ -257,10 +283,10 @@ class FacturasController extends Controller
 
             $datos = [];
             $multimedia = new Multimedia;
-            
+
             foreach ($imagenes as $co_art => $file) {
                 $nombre = $multimedia->guardarImagen($file, 'auditorias');
-                
+
                 if (!$nombre) {
                     throw new \Exception("Error al guardar la imagen de {$co_art}");
                 }
@@ -269,12 +295,13 @@ class FacturasController extends Controller
                 $detalleProfit = $renglonesProfit->get($co_art_trimmed);
 
                 $datos[] = [
-                    'fact_num' => trim($factura->fact_num),
-                    'co_art' => $co_art_trimmed,
-                    'imagen' => $nombre,
+                    'fact_num'  => trim($factura->fact_num),
+                    'db_origen' => $connection,
+                    'co_art'    => $co_art_trimmed,
+                    'imagen'    => $nombre,
                     'reng_neto' => $detalleProfit ? $detalleProfit->reng_neto : 0,
                     'total_art' => $detalleProfit ? $detalleProfit->total_art : 0,
-                    'reng_num' => $detalleProfit ? $detalleProfit->reng_num : 0,
+                    'reng_num'  => $detalleProfit ? $detalleProfit->reng_num : 0,
                 ];
             }
 

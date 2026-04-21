@@ -6,7 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Factura extends Model
 {
-    protected $connection = 'sqlsrv';
+    // Default connection — controller overrides via DB::connection($vehiculo->origen)
+    protected $connection = 'sqlsrv_carros';
     protected $table = 'factura';
     protected $keyType = 'string';
     protected $primaryKey = 'fact_num';
