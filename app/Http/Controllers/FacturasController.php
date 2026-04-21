@@ -94,51 +94,38 @@ class FacturasController extends Controller
      */
     public function show(Request $request, $factura_num)
     {
-        // Primero buscamos auditoría local para obtener db_origen y evitar buscar en ambas DBs.
-        // Si hay colisión (mismo fact_num en MOTOS y VEHICULO), db_origen discrimina correctamente.
-        $facturaAuditada = FacturaAuditoria::where('fact_num', $factura_num)->first();
-
+        // Buscar en ambas DBs y usar vehiculos.origen como desempate.
+        // NO pre-filtrar por auditoría local: el db_origen de otro vehículo con la misma
+        // fact_num causaría seleccionar la DB incorrecta.
         $factura = null;
-        $connection = $facturaAuditada?->db_origen;
+        $connection = null;
+        $candidatos = [];
 
-        if ($connection) {
-            $factura = DB::connection($connection)->table('factura')->where('fact_num', $factura_num)->first();
+        foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
+            $candidato = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
+            if ($candidato) {
+                $candidatos[$conn] = $candidato;
+            }
         }
 
-        // Sin auditoría previa o no encontrada en la DB registrada: buscar en ambas.
-        // Priorizar la DB que coincida con vehiculos.origen para evitar falsos positivos
-        // cuando el mismo fact_num existe en MOTOS y VEHICULO.
-        if (!$factura) {
-            $connection = null;
-            $candidatos = [];
-
-            foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
-                $candidato = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
-                if ($candidato) {
-                    $candidatos[$conn] = $candidato;
+        if (count($candidatos) === 1) {
+            // Solo existe en una DB — sin ambigüedad
+            $connection = array_key_first($candidatos);
+            $factura = $candidatos[$connection];
+        } elseif (count($candidatos) > 1) {
+            // Existe en ambas DBs — verificar cada candidato contra vehiculos.origen
+            foreach ($candidatos as $conn => $candidato) {
+                $vehiculoLocal = Vehiculo::where('placa', trim($candidato->co_cli))->first();
+                if ($vehiculoLocal?->origen === $conn) {
+                    $connection = $conn;
+                    $factura = $candidato;
+                    break;
                 }
             }
-
-            if (count($candidatos) === 1) {
-                // Solo existe en una DB — sin ambigüedad
-                $connection = array_key_first($candidatos);
+            // Sin match en vehiculos local — fallback a sqlsrv_carros
+            if (!$connection) {
+                $connection = isset($candidatos['sqlsrv_carros']) ? 'sqlsrv_carros' : array_key_first($candidatos);
                 $factura = $candidatos[$connection];
-            } elseif (count($candidatos) > 1) {
-                // Existe en ambas DBs — verificar cada candidato contra vehiculos.origen
-                $connection = null;
-                foreach ($candidatos as $conn => $candidato) {
-                    $vehiculoLocal = Vehiculo::where('placa', trim($candidato->co_cli))->first();
-                    if ($vehiculoLocal?->origen === $conn) {
-                        $connection = $conn;
-                        $factura = $candidato;
-                        break;
-                    }
-                }
-                // Sin match en vehiculos local — fallback a sqlsrv_carros
-                if (!$connection) {
-                    $connection = isset($candidatos['sqlsrv_carros']) ? 'sqlsrv_carros' : array_key_first($candidatos);
-                    $factura = $candidatos[$connection];
-                }
             }
         }
 
