@@ -105,14 +105,39 @@ class FacturasController extends Controller
             $factura = DB::connection($connection)->table('factura')->where('fact_num', $factura_num)->first();
         }
 
-        // Sin auditoría previa o no encontrada en la DB registrada: buscar en ambas
+        // Sin auditoría previa o no encontrada en la DB registrada: buscar en ambas.
+        // Priorizar la DB que coincida con vehiculos.origen para evitar falsos positivos
+        // cuando el mismo fact_num existe en MOTOS y VEHICULO.
         if (!$factura) {
             $connection = null;
+            $candidatos = [];
+
             foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
-                $factura = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
-                if ($factura) {
-                    $connection = $conn;
-                    break;
+                $candidato = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
+                if ($candidato) {
+                    $candidatos[$conn] = $candidato;
+                }
+            }
+
+            if (count($candidatos) === 1) {
+                // Solo existe en una DB — sin ambigüedad
+                $connection = array_key_first($candidatos);
+                $factura = $candidatos[$connection];
+            } elseif (count($candidatos) > 1) {
+                // Existe en ambas DBs — verificar cada candidato contra vehiculos.origen
+                $connection = null;
+                foreach ($candidatos as $conn => $candidato) {
+                    $vehiculoLocal = Vehiculo::where('placa', trim($candidato->co_cli))->first();
+                    if ($vehiculoLocal?->origen === $conn) {
+                        $connection = $conn;
+                        $factura = $candidato;
+                        break;
+                    }
+                }
+                // Sin match en vehiculos local — fallback a sqlsrv_carros
+                if (!$connection) {
+                    $connection = isset($candidatos['sqlsrv_carros']) ? 'sqlsrv_carros' : array_key_first($candidatos);
+                    $factura = $candidatos[$connection];
                 }
             }
         }
