@@ -42,8 +42,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('perfil/{user}', [UsersController::class, 'update'])->name('perfil.update');
 
     //Rutas Factura
-    Route::get('fichaTecnica/facturas/{factura:fact_num}', [FacturasController::class, 'show'])->name('facturas.show');
-    Route::post('fichaTecnica/facturas/{factura:fact_num}/auditoria', [FacturasController::class, 'storeAuditoria'])->name('facturas.auditoria.store')->middleware('audit:Audito factura, Factura');
+    Route::get('fichaTecnica/{vehiculo:placa}/facturas/{factura:fact_num}', [FacturasController::class, 'show'])->name('facturas.show');
+    Route::post('fichaTecnica/{vehiculo:placa}/facturas/{factura:fact_num}/auditoria', [FacturasController::class, 'storeAuditoria'])->name('facturas.auditoria.store')->middleware('audit:Audito factura, Factura');
 });
 
 
@@ -102,7 +102,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('asignar-tipo', [TipoUsuarioController::class, 'assign'])->name('asignar-tipo.assign')->middleware('role');
 
     // Rutas facturas
-    Route::patch('fichaTecnica/facturas/{factura:fact_num}/auditoria', [FacturasController::class, 'updateAuditoria'])->name('facturas.auditoria.update')->middleware('audit:Aprobo una factura, Aprobo Factura');
+    Route::patch('fichaTecnica/{vehiculo:placa}/facturas/{factura:fact_num}/auditoria', [FacturasController::class, 'updateAuditoria'])->name('facturas.auditoria.update')->middleware('audit:Aprobo una factura, Aprobo Factura');
     ;
 
     // Observaciones globales

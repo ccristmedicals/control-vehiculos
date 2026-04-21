@@ -78,7 +78,7 @@ export default function ModalDetalleFactura({
             if (file) formData.append(`imagenes[${co_art}]`, file);
         });
 
-        router.post(`/fichaTecnica/facturas/${factura.fact_num}/auditoria`, formData, {
+        router.post(`/fichaTecnica/${vehiculo.placa}/facturas/${factura.fact_num}/auditoria`, formData, {
             onSuccess: () => {
                 console.log('Auditoría enviada con éxito');
                 onClose();
@@ -107,7 +107,7 @@ export default function ModalDetalleFactura({
             cubre_usuario: adminState.cubreUsuario,
         });
 
-        router.post(`/fichaTecnica/facturas/${factura.fact_num}/auditoria`, formData, {
+        router.post(`/fichaTecnica/${vehiculo.placa}/facturas/${factura.fact_num}/auditoria`, formData, {
             forceFormData: true,
             preserveScroll: true,
             onSuccess: () => {

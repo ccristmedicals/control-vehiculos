@@ -91,49 +91,18 @@ class FacturasController extends Controller
 
     /**
      * Detalle de una factura específica.
+     * Vehiculo en la ruta garantiza DB correcta sin ambigüedad por colisión de fact_num.
      */
-    public function show(Request $request, $factura_num)
+    public function show(Request $request, Vehiculo $vehiculo, $factura_num)
     {
-        // Buscar en ambas DBs y usar vehiculos.origen como desempate.
-        // NO pre-filtrar por auditoría local: el db_origen de otro vehículo con la misma
-        // fact_num causaría seleccionar la DB incorrecta.
-        $factura = null;
-        $connection = null;
-        $candidatos = [];
+        $connection = $vehiculo->origen ?? 'sqlsrv_carros';
 
-        foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
-            $candidato = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
-            if ($candidato) {
-                $candidatos[$conn] = $candidato;
-            }
-        }
-
-        if (count($candidatos) === 1) {
-            // Solo existe en una DB — sin ambigüedad
-            $connection = array_key_first($candidatos);
-            $factura = $candidatos[$connection];
-        } elseif (count($candidatos) > 1) {
-            // Existe en ambas DBs — verificar cada candidato contra vehiculos.origen
-            foreach ($candidatos as $conn => $candidato) {
-                $vehiculoLocal = Vehiculo::where('placa', trim($candidato->co_cli))->first();
-                if ($vehiculoLocal?->origen === $conn) {
-                    $connection = $conn;
-                    $factura = $candidato;
-                    break;
-                }
-            }
-            // Sin match en vehiculos local — fallback a sqlsrv_carros
-            if (!$connection) {
-                $connection = isset($candidatos['sqlsrv_carros']) ? 'sqlsrv_carros' : array_key_first($candidatos);
-                $factura = $candidatos[$connection];
-            }
-        }
+        $factura = DB::connection($connection)->table('factura')->where('fact_num', $factura_num)->first();
 
         if (!$factura) {
             abort(404, 'Factura no encontrada');
         }
 
-        // Re-fetch con db_origen para garantizar que obtenemos la auditoría correcta
         $facturaAuditada = FacturaAuditoria::where('fact_num', $factura->fact_num)
             ->where('db_origen', $connection)
             ->first();
@@ -144,7 +113,6 @@ class FacturasController extends Controller
         $auditados = $renglonesAuditados->isNotEmpty();
 
         if ($auditados) {
-            // Buscamos las descripciones de los repuestos en Profit para los renglones auditados
             $co_arts = $renglonesAuditados->pluck('co_art')->map(fn($c) => trim($c))->toArray();
             $descripciones = DB::connection($connection)->table('art')
                 ->whereIn('co_art', $co_arts)
@@ -155,13 +123,13 @@ class FacturasController extends Controller
             $renglones = $renglonesAuditados->map(function ($r) use ($descripciones) {
                 $co_art_trimmed = trim($r->co_art);
                 return [
-                    'fact_num' => $r->fact_num,
+                    'fact_num'  => $r->fact_num,
                     'total_art' => $r->total_art,
                     'reng_neto' => $r->reng_neto,
-                    'co_art' => $r->co_art,
-                    'imagen' => $r->imagen,
+                    'co_art'    => $r->co_art,
+                    'imagen'    => $r->imagen,
                     'imagen_url' => $r->imagen ? Storage::url('uploads/auditorias/' . ltrim($r->imagen, '/')) : null,
-                    'repuesto' => [
+                    'repuesto'  => [
                         'art_des' => $descripciones[$co_art_trimmed] ?? $descripciones[str_pad($co_art_trimmed, 30)] ?? '—',
                     ],
                 ];
@@ -174,11 +142,11 @@ class FacturasController extends Controller
                 ->get()
                 ->map(function ($r) {
                     return [
-                        'fact_num' => $r->fact_num,
+                        'fact_num'  => $r->fact_num,
                         'total_art' => $r->total_art,
                         'reng_neto' => $r->reng_neto,
-                        'co_art' => $r->co_art,
-                        'repuesto' => [
+                        'co_art'    => $r->co_art,
+                        'repuesto'  => [
                             'art_des' => isset($r->art_des) ? mb_convert_encoding($r->art_des, 'UTF-8', 'ISO-8859-1') : null,
                         ],
                     ];
@@ -188,75 +156,58 @@ class FacturasController extends Controller
         $supervisor = User::find($facturaAuditada?->admin_id)?->name ?? '—';
         $conductor_model = User::find($facturaAuditada?->user_id);
         $conductor = $conductor_model ? $conductor_model->name : '—';
-        
-        $vehiculo = Vehiculo::where('placa', trim($factura->co_cli))->first();
+
+        $vehiculo->load('usuario');
 
         $respaldo = [
-            'id' => $vehiculo->usuario->id ?? Auth::user()->id,
-            'name' => $vehiculo->usuario->name ?? Auth::user()->name
+            'id'   => $vehiculo->usuario->id ?? Auth::user()->id,
+            'name' => $vehiculo->usuario->name ?? Auth::user()->name,
         ];
 
         $adicionales = [
-            User::select('id', 'name')->find($vehiculo?->user_id_adicional_1),
-            User::select('id', 'name')->find($vehiculo?->user_id_adicional_2),
-            User::select('id', 'name')->find($vehiculo?->user_id_adicional_3)
+            User::select('id', 'name')->find($vehiculo->user_id_adicional_1),
+            User::select('id', 'name')->find($vehiculo->user_id_adicional_2),
+            User::select('id', 'name')->find($vehiculo->user_id_adicional_3),
         ];
 
         $usuarioQuePaga = $facturaAuditada?->cubre
-            ? User::find($facturaAuditada?->cubre_usuario)?->name ?? '—'
+            ? User::find($facturaAuditada->cubre_usuario)?->name ?? '—'
             : 'Empresa';
 
         return Inertia::render('facturas', [
             'factura' => [
-                'fact_num' => $factura->fact_num,
-                'fec_emis' => $factura->fec_emis,
-                'co_cli' => trim($factura->co_cli),
-                'tot_bruto' => $factura->tot_bruto,
-                'tot_neto' => $factura->tot_neto,
-                'descripcion' => $this->limpiarTexto($factura->descrip ?? ''),
-                'observaciones_res' => $facturaAuditada->observaciones_res ?? null,
-                'observaciones_admin' => $facturaAuditada->observaciones_admin ?? null,
-                'aprobado' => (bool) $facturaAuditada?->aprobado,
-                'supervisor' => $supervisor,
-                'supervisores' => User::role('admin')->whereNotIn('email', [29960819, 26686507, 25025870])->select('id', 'name')->get(),
-                'cubre' => (bool) ($facturaAuditada->cubre ?? true),
-                'cubre_usuario' => $usuarioQuePaga,
-                'kilometraje' => $facturaAuditada->kilometraje ?? null
+                'fact_num'           => $factura->fact_num,
+                'fec_emis'           => $factura->fec_emis,
+                'co_cli'             => trim($factura->co_cli),
+                'tot_bruto'          => $factura->tot_bruto,
+                'tot_neto'           => $factura->tot_neto,
+                'descripcion'        => $this->limpiarTexto($factura->descrip ?? ''),
+                'observaciones_res'  => $facturaAuditada->observaciones_res ?? null,
+                'observaciones_admin'=> $facturaAuditada->observaciones_admin ?? null,
+                'aprobado'           => (bool) $facturaAuditada?->aprobado,
+                'supervisor'         => $supervisor,
+                'supervisores'       => User::role('admin')->whereNotIn('email', [29960819, 26686507, 25025870])->select('id', 'name')->get(),
+                'cubre'              => (bool) ($facturaAuditada->cubre ?? true),
+                'cubre_usuario'      => $usuarioQuePaga,
+                'kilometraje'        => $facturaAuditada->kilometraje ?? null,
             ],
             'renglones' => $renglones,
             'auditados' => $auditados,
-            'vehiculo' => [
-                'placa' => trim($factura->co_cli),
-                'conductor' => $conductor,
-                'respaldo' => $respaldo,
-                'adicionales' => $adicionales
+            'vehiculo'  => [
+                'placa'      => $vehiculo->placa,
+                'conductor'  => $conductor,
+                'respaldo'   => $respaldo,
+                'adicionales'=> $adicionales,
             ],
             'isAdmin' => Auth::user()->hasRole('admin'),
         ]);
     }
 
-    public function storeAuditoria(Request $request, $factura_num)
+    public function storeAuditoria(Request $request, Vehiculo $vehiculo, $factura_num)
     {
-        // Buscar primero en auditoría local para usar db_origen conocido
-        $auditExistente = FacturaAuditoria::where('fact_num', $factura_num)->first();
+        $connection = $vehiculo->origen ?? 'sqlsrv_carros';
 
-        $factura = null;
-        $connection = $auditExistente?->db_origen;
-
-        if ($connection) {
-            $factura = DB::connection($connection)->table('factura')->where('fact_num', $factura_num)->first();
-        }
-
-        if (!$factura) {
-            $connection = null;
-            foreach (['sqlsrv_motos', 'sqlsrv_carros'] as $conn) {
-                $factura = DB::connection($conn)->table('factura')->where('fact_num', $factura_num)->first();
-                if ($factura) {
-                    $connection = $conn;
-                    break;
-                }
-            }
-        }
+        $factura = DB::connection($connection)->table('factura')->where('fact_num', $factura_num)->first();
 
         if (!$factura) {
             return back()->with('error', 'Factura no encontrada');
@@ -272,19 +223,18 @@ class FacturasController extends Controller
 
             $request->validate([
                 'observacion' => 'nullable|string',
-                'imagenes.*' => 'image|max:5120',
-                'kilometraje' => 'required|numeric'
+                'imagenes.*'  => 'image|max:5120',
+                'kilometraje' => 'required|numeric',
             ]);
 
-            // db_origen incluido en el lookup para evitar colisión entre MOTOS y VEHICULO
             FacturaAuditoria::updateOrCreate(
                 ['fact_num' => trim($factura->fact_num), 'db_origen' => $connection],
                 [
-                    'vehiculo_id' => trim($factura->co_cli),
-                    'user_id' => $request->user()->id,
+                    'vehiculo_id'     => trim($factura->co_cli),
+                    'user_id'         => $request->user()->id,
                     'observaciones_res' => $request->input('observacion'),
-                    'kilometraje' => $request->kilometraje,
-                    'aprobado' => false
+                    'kilometraje'     => $request->kilometraje,
+                    'aprobado'        => false,
                 ]
             );
 
@@ -304,7 +254,7 @@ class FacturasController extends Controller
                 }
 
                 $co_art_trimmed = trim((string)$co_art);
-                $detalleProfit = $renglonesProfit->get($co_art_trimmed);
+                $detalleProfit  = $renglonesProfit->get($co_art_trimmed);
 
                 $datos[] = [
                     'fact_num'  => trim($factura->fact_num),
@@ -322,29 +272,34 @@ class FacturasController extends Controller
         }, 'Auditoría registrada con éxito.', 'Error al registrar la auditoría.');
     }
 
-    public function updateAuditoria(Request $request, FacturaAuditoria $factura)
+    public function updateAuditoria(Request $request, Vehiculo $vehiculo, $factura_num)
     {
+        $connection = $vehiculo->origen ?? 'sqlsrv_carros';
+
+        $factura = FacturaAuditoria::where('fact_num', $factura_num)
+            ->where('db_origen', $connection)
+            ->firstOrFail();
+
         $request->merge([
             'aprobado' => filter_var($request->input('aprobado'), FILTER_VALIDATE_BOOLEAN),
-            'cubre' => filter_var($request->input('cubre'), FILTER_VALIDATE_BOOLEAN)
+            'cubre'    => filter_var($request->input('cubre'), FILTER_VALIDATE_BOOLEAN),
         ]);
 
         return FlashHelper::try(function () use ($request, $factura) {
-
             $validatedData = $request->validate([
-                'aprobado' => 'required|boolean',
+                'aprobado'            => 'required|boolean',
                 'observaciones_admin' => 'nullable|string',
-                'cubre' => 'required|boolean',
-                'cubre_usuario' => 'required',
+                'cubre'               => 'required|boolean',
+                'cubre_usuario'       => 'required',
             ]);
 
             if ($validatedData['cubre_usuario'] == 'Empresa') $validatedData['cubre_usuario'] = null;
 
-            $factura->aprobado = $validatedData['aprobado'];
+            $factura->aprobado           = $validatedData['aprobado'];
             $factura->observaciones_admin = $validatedData['observaciones_admin'];
-            $factura->admin_id = $request->user()->id;
-            $factura->cubre = $validatedData['cubre'];
-            $factura->cubre_usuario = $validatedData['cubre_usuario'];
+            $factura->admin_id           = $request->user()->id;
+            $factura->cubre              = $validatedData['cubre'];
+            $factura->cubre_usuario      = $validatedData['cubre_usuario'];
 
             $factura->save();
         }, 'Auditoría actualizada correctamente.', 'Error al actualizar la auditoría.');

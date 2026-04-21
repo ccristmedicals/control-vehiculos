@@ -57,7 +57,7 @@ export function TablaFacturas({ facturas: facturasIniciales, vehiculo, isAdmin }
                             isAdmin={isAdmin}
                             onOpenModal={(facturaNum) => {
                                 router.get(
-                                    `/fichaTecnica/facturas/${facturaNum}`,
+                                    `/fichaTecnica/${vehiculo.placa}/facturas/${facturaNum}`,
                                     {},
                                     {
                                         preserveState: true,
