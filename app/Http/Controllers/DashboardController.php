@@ -199,10 +199,16 @@ class DashboardController extends Controller
         // }
 
         // incluir todos los registros de gasolina limitados para evitar colapsos de memoria
-        $surtidos = Surtido::with(['user:id,name', 'admin:id,name', 'vehiculo:placa,modelo'])
+        $surtidos = Surtido::with(['user:id,name', 'admin:id,name', 'vehiculo:placa,modelo,tipo'])
             ->whereNotIn('vehiculo_id', ['000', '0001'])
+            ->when($user->tipo, function ($q) use ($user) {
+                // Si el admin tiene tipo (MOTO/CARRO), filtrar solo vehículos de su tipo
+                $q->whereHas('vehiculo', function ($vq) use ($user) {
+                    $vq->where('tipo', $user->tipo);
+                });
+            })
             ->latest()
-            ->limit(100)
+            ->limit(200)
             ->get();
 
         $registros = $surtidos->map(function ($surtido) {
@@ -211,6 +217,7 @@ class DashboardController extends Controller
                 'fecha' => $surtido->created_at->format('Y-m-d'),
                 'vehiculo' => $surtido->vehiculo->modelo ?? $surtido->vehiculo_id,
                 'placa' => $surtido->vehiculo_id,
+                'tipo' => $surtido->vehiculo->tipo ?? 'MOTO',
                 'precio' => $surtido->precio,
                 'km_actual' => $surtido->kilometraje,
                 'recorrido' => $surtido->surtido_ideal,
