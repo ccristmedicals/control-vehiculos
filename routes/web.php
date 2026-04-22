@@ -42,8 +42,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('perfil/{user}', [UsersController::class, 'update'])->name('perfil.update');
 
     //Rutas Factura
-    Route::get('fichaTecnica/{vehiculo:placa}/facturas/{factura:fact_num}', [FacturasController::class, 'show'])->name('facturas.show');
-    Route::post('fichaTecnica/{vehiculo:placa}/facturas/{factura:fact_num}/auditoria', [FacturasController::class, 'storeAuditoria'])->name('facturas.auditoria.store')->middleware('audit:Audito factura, Factura');
+    Route::get('fichaTecnica/{vehiculo:placa}/facturas/{factura_num}', [FacturasController::class, 'show'])->name('facturas.show');
+    Route::post('fichaTecnica/{vehiculo:placa}/facturas/{factura_num}/auditoria', [FacturasController::class, 'storeAuditoria'])->name('facturas.auditoria.store')->middleware('audit:Audito factura, Factura');
 });
 
 
@@ -73,8 +73,7 @@ Route::middleware(['auth'])->group(function () {
 
     // Observaciones
     Route::get('fichaTecnica/{vehiculo:placa}/observaciones', [ObservacionesController::class, 'show'])->name('observaciones.show');
-    Route::post('observaciones/{vehiculo:placa}/save', [ObservacionesController::class, 'store'])->name('observaciones.store')->middleware('audit:Realizo una observacion, Observacion');
-    ;
+    Route::post('observaciones/{vehiculo:placa}/save', [ObservacionesController::class, 'store'])->name('observaciones.store')->middleware('audit:Realizo una observacion, Observacion');;
 
     // Rutas para asignaciones
     Route::get('fichaTecnica/{vehiculo:placa}/asignaciones', [AsignacionesController::class, 'index'])->name('asignaciones');
@@ -102,8 +101,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('asignar-tipo', [TipoUsuarioController::class, 'assign'])->name('asignar-tipo.assign')->middleware('role');
 
     // Rutas facturas
-    Route::patch('fichaTecnica/{vehiculo:placa}/facturas/{factura:fact_num}/auditoria', [FacturasController::class, 'updateAuditoria'])->name('facturas.auditoria.update')->middleware('audit:Aprobo una factura, Aprobo Factura');
-    ;
+    Route::patch('fichaTecnica/{vehiculo:placa}/facturas/{factura_num}/auditoria', [FacturasController::class, 'updateAuditoria'])->name('facturas.auditoria.update')->middleware('audit:Aprobo una factura, Aprobo Factura');;
 
     // Observaciones globales
     Route::get('observaciones', [ObservacionesController::class, 'index'])->name('observaciones.index');
@@ -111,8 +109,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Rutas gasolina
     Route::get('fichaTecnica/{vehiculo:placa}/gasolina', [SurtidosController::class, 'index'])->name('gasolina.index');
     Route::get('fichaTecnica/{vehiculo:placa}/gasolina/info', [SurtidosController::class, 'info']);
-    Route::post('fichaTecnica/{vehiculo:placa}/gasolina', [SurtidosController::class, 'store'])->name('surtidos.store')->middleware('audit:Realizo surtido de gasolina, Permisos');
-    ;
+    Route::post('fichaTecnica/{vehiculo:placa}/gasolina', [SurtidosController::class, 'store'])->name('surtidos.store')->middleware('audit:Realizo surtido de gasolina, Permisos');;
 
     // Visualizar perfil
     Route::get('perfiles', [UsersController::class, 'index'])->name('perfil.index');
@@ -133,8 +130,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     // Route::delete('notificaciones/{notificacion}', [NotificacionController::class, 'destroy'])->name('notificaciones.destroy');
 
     // Editar Observacion
-    Route::patch('observaciones/{vehiculo:placa}/{observacion}/edit', [ObservacionesController::class, 'update'])->name('observaciones.update')->middleware('audit:Resolvio una observacion, Observacion');
-    ;
+    Route::patch('observaciones/{vehiculo:placa}/{observacion}/edit', [ObservacionesController::class, 'update'])->name('observaciones.update')->middleware('audit:Resolvio una observacion, Observacion');;
 });
 
 // Configuración y autenticación
