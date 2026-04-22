@@ -45,7 +45,7 @@ class FacturasController extends Controller
                 }
             })
             ->where('anulada', 0)
-            ->whereNotIn('co_tran', ['000003'])
+            ->where('co_tran', '<>', '03') // Excluir siempre las facturas de gasolina
             ->whereDate('fec_emis', '>=', '2025-10-06')
             ->orderByDesc('fact_num')
             ->get();

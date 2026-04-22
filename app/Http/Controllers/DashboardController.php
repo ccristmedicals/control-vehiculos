@@ -70,7 +70,7 @@ class DashboardController extends Controller
             ->whereIn('co_cli', $placasMotos)
             ->where('anulada', 0)
             ->whereDate('fec_emis', '>=', '2025-10-06')
-            ->where('co_tran', '<>', '000003')
+            ->where('co_tran', '<>', '03') // Excluir facturas de gasolina
             ->get()
             : collect();
 
@@ -80,7 +80,7 @@ class DashboardController extends Controller
             ->whereIn('co_cli', $placasCarros)
             ->where('anulada', 0)
             ->whereDate('fec_emis', '>=', '2025-10-06')
-            ->where('co_tran', '<>', '000003')
+            ->where('co_tran', '<>', '03') // Excluir facturas de gasolina
             ->get()
             : collect();
 
