@@ -484,6 +484,7 @@ export interface SurtidoResponse {
 }
 
 export interface RegistroGasolina {
+    id: number;
     factura: number;
     fecha: string;
     vehiculo: string;

@@ -20,7 +20,8 @@ class SurtidosController extends Controller
     {
         $vehiculo->load('usuario');
 
-        $registros = Surtido::where('vehiculo_id', $vehiculo->placa)
+        $registros = Surtido::with(['user', 'admin'])
+            ->where('vehiculo_id', $vehiculo->placa)
             ->latest()
             ->get();
 
@@ -33,9 +34,10 @@ class SurtidosController extends Controller
                 ],
             ],
             'registros' => $registros->map(function ($surtido) use ($vehiculo) {
-                $user = User::find($surtido->user_id);
-                $admin = User::find($surtido->admin_id);
+                $user = $surtido->user;
+                $admin = $surtido->admin;
                 return [
+                    'id' => $surtido->id,
                     'factura' => $surtido->fact_num,
                     'fecha' => $surtido->created_at->format('Y-m-d'),
                     'vehiculo' => $surtido->vehiculo_id,
@@ -57,12 +59,12 @@ class SurtidosController extends Controller
     {
         // Validar que lleguen facturas
         $request->validate([
-            'facturas' => 'required|array|min:1',
+            'ids' => 'required|array|min:1',
         ]);
 
         // 1. Obtener los datos
-        $facturas = Surtido::whereIn('fact_num', $request->facturas)
-            ->orderBy('fact_num')
+        $facturas = Surtido::whereIn('id', $request->ids)
+            ->orderBy('id')
             ->get();
 
         if ($facturas->isEmpty()) {
@@ -137,8 +139,6 @@ class SurtidosController extends Controller
             ]);
 
             $valorCarburador = $vehiculo->tipo === 'CARRO' ? 0.10 : 0.035;
-
-            $valorCarburador = $vehiculo->tipo === 'CARRO' ? 0.10 : 0.035;
             
             $UltimoSurtido = Surtido::where('vehiculo_id', $vehiculo->placa)
                 ->latest()
@@ -162,7 +162,7 @@ class SurtidosController extends Controller
             $profit = new Gasolina;
             $fact_num = $profit->registrarFacturaConRenglon(
                 $validatedData['kilometraje'],
-                substr($validatedData['observaciones'], 0, 60),
+                substr($validatedData['observaciones'] ?? '', 0, 60),
                 $validatedData['precio'],
                 $vehiculo->placa,
                 $usuario->email,
@@ -191,7 +191,7 @@ class SurtidosController extends Controller
             DB::commit();
             } catch (\Throwable $e) {
                 DB::rollBack();
-                dd($e);
+                throw $e;
             }
         }, 'Surtido realizado correctamente.', 'Error al registrar el surtido.');
     }

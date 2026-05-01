@@ -14,8 +14,8 @@ export default function Gasolina() {
     const [fechaHasta, setFechaHasta] = useState('');
     const [factura, setFactura] = useState('');
 
-    // Estado para la selección múltiple (Array de números de factura)
-    const [selectedFacturas, setSelectedFacturas] = useState<number[]>([]);
+    // Estado para la selección múltiple (Array de IDs)
+    const [selectedIds, setSelectedIds] = useState<number[]>([]);
 
     const registrosFiltrados = useMemo(() => {
         return registros.filter((r) => {
@@ -29,26 +29,26 @@ export default function Gasolina() {
     const [modalOpen, setModalOpen] = useState(false);
 
     // Seleccionar o Deseleccionar (Con restricción de adyacencia)
-    const toggleSeleccion = (numFactura: number) => {
+    const toggleSeleccion = (id: number) => {
         // 1. Encontrar en qué posición visual está la fila clickeada
-        const currentIndex = registrosFiltrados.findIndex((r) => r.factura === numFactura);
+        const currentIndex = registrosFiltrados.findIndex((r) => r.id === id);
 
         if (currentIndex === -1) return; // Seguridad
 
-        setSelectedFacturas((prev) => {
+        setSelectedIds((prev) => {
             // A. Si no hay nada seleccionado, es el primero: adelante.
-            if (prev.length === 0) return [numFactura];
+            if (prev.length === 0) return [id];
 
-            const isSelected = prev.includes(numFactura);
+            const isSelected = prev.includes(id);
 
             // B. Obtener los índices visuales de lo que YA está seleccionado
             const selectedIndices = prev
-                .map((id) => registrosFiltrados.findIndex((r) => r.factura === id))
+                .map((selId) => registrosFiltrados.findIndex((r) => r.id === selId))
                 .filter((idx) => idx !== -1) // Filtrar por si el filtro ocultó alguno
                 .sort((a, b) => a - b);
 
             // Si los seleccionados no son visibles (ej. cambio de filtro), reseteamos con el nuevo
-            if (selectedIndices.length === 0) return [numFactura];
+            if (selectedIndices.length === 0) return [id];
 
             const minIndex = selectedIndices[0];
             const maxIndex = selectedIndices[selectedIndices.length - 1];
@@ -57,7 +57,7 @@ export default function Gasolina() {
                 // DESELECCIONAR: Solo permitir si es el primero o el último del bloque
                 // (Evita crear huecos en el medio)
                 if (currentIndex === minIndex || currentIndex === maxIndex) {
-                    return prev.filter((f) => f !== numFactura);
+                    return prev.filter((f) => f !== id);
                 } else {
                     alert('Solo puedes deseleccionar los extremos para no dejar huecos en la lista.');
                     return prev;
@@ -65,7 +65,7 @@ export default function Gasolina() {
             } else {
                 // SELECCIONAR: Solo permitir si es vecino inmediato (arriba o abajo)
                 if (currentIndex === minIndex - 1 || currentIndex === maxIndex + 1) {
-                    return [...prev, numFactura];
+                    return [...prev, id];
                 } else {
                     alert('Solo puedes seleccionar filas consecutivas (la que está justo arriba o justo abajo de tu selección actual).');
                     return prev;
@@ -76,10 +76,10 @@ export default function Gasolina() {
 
     // Seleccionar o Deseleccionar todos
     const toggleSeleccionarTodo = () => {
-        if (selectedFacturas.length === registrosFiltrados.length) {
-            setSelectedFacturas([]);
+        if (selectedIds.length === registrosFiltrados.length) {
+            setSelectedIds([]);
         } else {
-            setSelectedFacturas(registrosFiltrados.map((r) => r.factura));
+            setSelectedIds(registrosFiltrados.map((r) => r.id));
         }
     };
 
@@ -89,13 +89,13 @@ export default function Gasolina() {
 
     // Función para enviar al backend los seleccionados
     const handleExportSeleccionados = async () => {
-        if (selectedFacturas.length === 0) return;
+        if (selectedIds.length === 0) return;
 
         try {
             const response = await axios.post(
                 '/gasolina/exportar-seleccion',
                 {
-                    facturas: selectedFacturas,
+                    ids: selectedIds,
                 },
                 {
                     responseType: 'blob',
@@ -191,12 +191,12 @@ export default function Gasolina() {
                     </button>
 
                     {/* Botón exportar seleccionados */}
-                    {selectedFacturas.length > 0 && (
+                    {selectedIds.length > 0 && (
                         <button
                             onClick={handleExportSeleccionados}
                             className="flex items-center gap-1 rounded-2xl bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-lg transition-all hover:bg-purple-500 hover:shadow-xl"
                         >
-                            Exportar Seleccionados ({selectedFacturas.length})
+                            Exportar Seleccionados ({selectedIds.length})
                         </button>
                     )}
                 </div>
@@ -212,7 +212,7 @@ export default function Gasolina() {
                                         type="checkbox"
                                         className="h-4 w-4 rounded border-gray-300 text-[#49af4e] focus:ring-[#49af4e]"
                                         onChange={toggleSeleccionarTodo}
-                                        checked={registrosFiltrados.length > 0 && selectedFacturas.length === registrosFiltrados.length}
+                                        checked={registrosFiltrados.length > 0 && selectedIds.length === registrosFiltrados.length}
                                     />
                                 </th>
                                 <th className="px-4 py-2">N° Factura</th>
@@ -240,15 +240,15 @@ export default function Gasolina() {
                                 registrosFiltrados.map((registro, index) => (
                                     <tr
                                         key={index}
-                                        className={`text-sm text-gray-700 even:bg-gray-50 dark:text-gray-300 dark:even:bg-gray-700 ${selectedFacturas.includes(registro.factura) ? 'bg-green-50 dark:bg-green-900/20' : ''}`}
+                                        className={`text-sm text-gray-700 even:bg-gray-50 dark:text-gray-300 dark:even:bg-gray-700 ${selectedIds.includes(registro.id) ? 'bg-green-50 dark:bg-green-900/20' : ''}`}
                                     >
                                         {/* Checkbox Individual */}
                                         <td className="px-4 py-2 text-center">
                                             <input
                                                 type="checkbox"
                                                 className="h-4 w-4 rounded border-gray-300 text-[#49af4e] focus:ring-[#49af4e]"
-                                                checked={selectedFacturas.includes(registro.factura)}
-                                                onChange={() => toggleSeleccion(registro.factura)}
+                                                checked={selectedIds.includes(registro.id)}
+                                                onChange={() => toggleSeleccion(registro.id)}
                                             />
                                         </td>
                                         <td className="px-4 py-2">{registro.factura}</td>

@@ -101,7 +101,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('asignar-tipo', [TipoUsuarioController::class, 'assign'])->name('asignar-tipo.assign')->middleware('role');
 
     // Rutas facturas
-    Route::patch('fichaTecnica/{vehiculo:placa}/facturas/{factura_num}/auditoria', [FacturasController::class, 'updateAuditoria'])->name('facturas.auditoria.update')->middleware('audit:Aprobo una factura, Aprobo Factura');;
+    Route::patch('fichaTecnica/{vehiculo:placa}/facturas/{factura:fact_num}/auditoria', [FacturasController::class, 'updateAuditoria'])->name('facturas.auditoria.update')->middleware('audit:Aprobo una factura, Aprobo Factura');;
 
     // Observaciones globales
     Route::get('observaciones', [ObservacionesController::class, 'index'])->name('observaciones.index');
