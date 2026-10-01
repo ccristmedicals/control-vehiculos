@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Str;
 use Intervention\Image\ImageManager;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 
 class Multimedia
 {
@@ -21,33 +22,31 @@ public function guardarImagen($image, $tipo)
     {
         try {
             if (!array_key_exists($tipo, $this->rutasGuardado)) {
-                dd('2. ERROR: El tipo "' . $tipo . '" no existe en el arreglo rutasGuardado.');
+                Log::error('Multimedia::guardarImagen - tipo inválido: ' . $tipo);
                 return false;
             }
             $nameImage = Str::uuid() . '.' . $image->extension();
-            
+
             $serverImage = ImageManager::gd()->read($image->getRealPath());
 
             $targetPath = $this->rutasGuardado[$tipo];
             $encoded = $serverImage->encode();
 
             if (!$encoded) {
-                dd('5. ERROR: No se pudo codificar la imagen.');
+                Log::error('Multimedia::guardarImagen - no se pudo codificar la imagen.');
                 return false;
             }
 
             $respuesta = Storage::disk('public')->put($targetPath . '/' . $nameImage, $encoded);
 
             return $respuesta ? $nameImage : false;
-            
+
         } catch (\Throwable $e) {
-            
-            dd([
-                'mensaje' => $e->getMessage(),
+            Log::error('Multimedia::guardarImagen - ' . $e->getMessage(), [
                 'linea' => $e->getLine(),
-                'archivo' => $e->getFile()
+                'archivo' => $e->getFile(),
             ]);
-            
+            return false;
         }
     }
 

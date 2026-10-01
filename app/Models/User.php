@@ -16,6 +16,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'employee_id',
         'zona',
         'foto_cedula',
         'vencimiento_cedula',

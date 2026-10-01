@@ -19,14 +19,18 @@ class AuditAction
     {
         $response = $next($request);
 
-        ActivityLog::create([
-            'name' => Auth::user()->name,
-            'accion' => $action,
-            'modelo' => $model,
-            'subject_type' => $request->route()->getController()::class ?? 'Ruta',
-            'subject_id' => $request->route('id') ?? null,
-            'descripcion' => 'Acción registrada automáticamente desde middleware',
-        ]);
+        try {
+            ActivityLog::create([
+                'name' => Auth::user()->name,
+                'accion' => $action,
+                'modelo' => $model,
+                'subject_type' => $request->route()->getController()::class ?? 'Ruta',
+                'subject_id' => $request->route('id') ?? null,
+                'descripcion' => 'Acción registrada automáticamente desde middleware',
+            ]);
+        } catch (\Throwable $e) {
+            report($e);
+        }
 
         return $response;
     }

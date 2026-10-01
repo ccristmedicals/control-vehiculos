@@ -4,6 +4,7 @@ import UploadProgressBar from '@/components/UploadProgressBar';
 import { cheyenneTritonFields } from '@/constants/cheyenneTritonFields';
 import { fluidosSemanalFields } from '@/constants/fluidosSemanalFields';
 import { sparkPeugeotFields } from '@/constants/sparkPeugeotFields';
+import { uploaderUrl } from '@/lib/uploader';
 import AppLayout from '@/layouts/app-layout';
 import type { Field } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -93,7 +94,7 @@ export default function RevisionSemanal() {
             let resultados: Record<string, string> = {};
             if (hasFiles) {
                 setUploadPercentage(1); // Force progress bar to show immediately
-                const response = await axios.post('http://98.94.185.164:8021/upload', uploadData, {
+                const response = await axios.post(uploaderUrl(), uploadData, {
                     onUploadProgress: (progressEvent) => {
                         const total = progressEvent.total || 0;
                         const validTotal = total > 0 ? total : progressEvent.loaded;

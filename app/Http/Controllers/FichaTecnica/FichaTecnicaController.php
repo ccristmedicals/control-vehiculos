@@ -52,10 +52,17 @@ class FichaTecnicaController extends Controller
 
             $permisosPorVehiculo[$vehiculo->placa]["{$campo}_expedicion"] = $permiso->fecha_expedicion;
             $permisosPorVehiculo[$vehiculo->placa]["{$campo}_vencimiento"] = $permiso->fecha_vencimiento;
-            if (pathinfo($permiso->documento, PATHINFO_EXTENSION) == 'pdf') {
-                $permisosPorVehiculo[$vehiculo->placa]["{$campo}_documento"] = '/storage/uploads/pdf-documentos/' . $permiso->documento;
+            
+            // CORRECCIÓN AQUÍ: Evitamos pasar un valor null a pathinfo()
+            if (!empty($permiso->documento)) {
+                if (pathinfo($permiso->documento, PATHINFO_EXTENSION) == 'pdf') {
+                    $permisosPorVehiculo[$vehiculo->placa]["{$campo}_documento"] = '/storage/uploads/pdf-documentos/' . $permiso->documento;
+                } else {
+                    $permisosPorVehiculo[$vehiculo->placa]["{$campo}_documento"] = '/storage/uploads/fotos-documentos/' . $permiso->documento;
+                }
             } else {
-                $permisosPorVehiculo[$vehiculo->placa]["{$campo}_documento"] = '/storage/uploads/fotos-documentos/' . $permiso->documento;
+                // Si el vehículo no posee un archivo adjunto, viaja como nulo de forma segura
+                $permisosPorVehiculo[$vehiculo->placa]["{$campo}_documento"] = null;
             }
         }
 

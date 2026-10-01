@@ -3,6 +3,7 @@
 import FichaSeccionFluidos from '@/components/FichaSeccionFluidos';
 import UploadProgressBar from '@/components/UploadProgressBar';
 import { fluidosPorRevisarFields } from '@/constants/fluidosPorRevisarFields';
+import { uploaderUrl } from '@/lib/uploader';
 import AppLayout from '@/layouts/app-layout';
 import { RevisionFluido, RevisionFluidosProps } from '@/types';
 import { Head, router, usePage } from '@inertiajs/react';
@@ -130,7 +131,7 @@ export default function revisionFluidos({ vehiculoId }: RevisionFluidosProps) {
             let resultados: Record<string, string> = {};
             if (hasFiles) {
                 setUploadPercentage(1); // Force progress bar to show immediately
-                const response = await axios.post('http://98.94.185.164:8021/upload', batchData, {
+                const response = await axios.post(uploaderUrl(), batchData, {
                     onUploadProgress: (progressEvent) => {
                         const total = progressEvent.total || 0;
                         const validTotal = total > 0 ? total : progressEvent.loaded; // Fallback if total is 0

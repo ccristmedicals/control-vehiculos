@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminRoleController;
 use App\Http\Controllers\AsignacionesController;
+use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\NotificacionController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +32,9 @@ Route::get('/', function () {
         ? redirect()->route('dashboard')
         : Inertia::render('auth/login');
 })->name('home');
+
+// SSO desde el ERP central (pharma-erp) — sin sesión todavía, fuera de 'auth'
+Route::get('auth/sso', [SsoController::class, 'callback'])->name('sso.callback');
 
 // Rutas protegidas por autenticación y verificación
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -118,6 +122,8 @@ Route::middleware(['auth', 'admin'])->group(function () {
     Route::post('fichaTecnica/{vehiculo:placa}/assign-user', [AsignacionesController::class, 'store'])->name('asignaciones.store')->middleware('audit:Realizo una asignacion, Asignaciones');
     // Unassing usuario
     Route::post('fichaTecnica/{vehiculo:placa}/unassign-user', [AsignacionesController::class, 'unassign'])->name('asignaciones.unassign')->middleware('audit:Elimino los conductores de un vehiculo, Asignaciones');
+    // Corregir el kilometraje de un registro del historial (solo admin)
+    Route::patch('fichaTecnica/{vehiculo:placa}/asignaciones/{historial}', [AsignacionesController::class, 'updateHistorial'])->name('asignaciones.historial.update')->middleware('audit:Corrigio el kilometraje de una asignacion, Asignaciones');
 
     // Rutas para modificar vehiculos (necesario proximamente)
     Route::get('vehiculo/{vehiculo:placa}/edit', [VehiculoController::class, 'edit'])->name('vehiculo.edit');

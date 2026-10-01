@@ -88,7 +88,9 @@ COPY --chown=root:root --from=composer-build /app/vendor /var/www/vendor
 COPY --chown=root:root --from=node-build /app/public/build /var/www/public/build
 
 RUN php artisan storage:unlink || true && \
-    php artisan storage:link
+    php artisan storage:link && \
+    php artisan config:clear && \
+    php artisan route:clear
 
 COPY --chown=root:root docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh

@@ -7,12 +7,18 @@ import { TextField } from '@/components/form-fields/TextField';
 import { useFormLogic } from '@/hooks/useFormLogic';
 import { Field, FormCardProps } from '@/types';
 import { compressToWebp } from '@/utils/compressToWebp';
+import { usePage } from '@inertiajs/react';
 import { useMemo, useState } from 'react';
 import { CheckField } from './form-fields/CheckField';
 import { FileField } from './form-fields/FileField';
 
 export default function FormCard({ title, fields, buttonText, formType = 'expediente', onSubmit, expediente = {}, onChange }: FormCardProps) {
     const { formValues, isEditing, hasFechasInvalidas, hasCamposIncompletos, handleChange } = useFormLogic(expediente, fields, onChange);
+
+    // Errores de validación devueltos por el backend (422 vía Inertia).
+    const pageErrors = (usePage().props.errors ?? {}) as Record<string, string>;
+    const errorFor = (fieldId: string): string | undefined =>
+        pageErrors[fieldId] ?? pageErrors[`${fieldId}_expedicion`] ?? pageErrors[`${fieldId}_vencimiento`] ?? pageErrors[`${fieldId}_archivo`];
 
     const [imagenModal, setImagenModal] = useState<string | null>(null);
     // Progreso de compresión por campo (0–100). Si existe la clave, está comprimiendo.
@@ -168,11 +174,15 @@ export default function FormCard({ title, fields, buttonText, formType = 'expedi
 
             <form className="space-y-8" onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                    {fields.map((field) => (
-                        <div key={field.id} className={field.type === 'textarea' ? 'col-span-1 md:col-span-2' : ''}>
-                            {renderField(field)}
-                        </div>
-                    ))}
+                    {fields.map((field) => {
+                        const fieldError = errorFor(field.id);
+                        return (
+                            <div key={field.id} className={field.type === 'textarea' ? 'col-span-1 md:col-span-2' : ''}>
+                                {renderField(field)}
+                                {fieldError && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{fieldError}</p>}
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <div className="flex justify-end">

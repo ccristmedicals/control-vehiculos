@@ -6,12 +6,15 @@ use App\Models\Vehiculo;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Helpers\FlashHelper;
+use Inertia\Inertia;
 
 class VehiculoController extends Controller
 {
     public function edit(Request $request, Vehiculo $vehiculo)
     {
-        return view('vehiculos.edit');
+        return Inertia::render('vehiculoEdit', [
+            'vehiculo' => $vehiculo,
+        ]);
     }
 
     public function update(Request $request, Vehiculo $vehiculo)

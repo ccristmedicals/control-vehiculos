@@ -24,15 +24,15 @@ export const getAsignacionFields = (users: { id: string | number; name: string }
         {
             id: 'kilometraje',
             label: 'Kilometraje actual',
-            type: 'text',
+            type: 'number',
             placeholder: 'Ej. 123456',
-            required: false,
+            required: true,
         },
         {
             id: 'foto_kilometraje',
             label: 'Foto del Kilometraje',
             type: 'file',
-            required: false,
+            required: true,
         },
     ];
 };

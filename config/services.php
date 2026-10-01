@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'erp_sso' => [
+        'secret' => env('ERP_SSO_SECRET'),
+        'issuer' => 'cristmedicals-erp',
+    ],
+
 ];

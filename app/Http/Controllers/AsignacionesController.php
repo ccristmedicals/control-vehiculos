@@ -50,11 +50,14 @@ class AsignacionesController extends Controller
             ]);
 
             $ultimoKilometraje = HistorialAsignaciones::where('vehiculo_id', $vehiculo->placa)
-                ->orderByDesc('fecha_asignacion')
+                ->orderByDesc('id')
                 ->first();
 
             if ($ultimoKilometraje && $ultimoKilometraje->kilometraje > $validatedData['kilometraje']) {
-                throw new \Exception('Kilometraje inválido');
+                throw new \Exception(
+                    "El kilometraje ingresado ({$validatedData['kilometraje']}) es menor al último registrado para este vehículo ({$ultimoKilometraje->kilometraje}). "
+                    . 'Verifique la lectura del odómetro; si el último registro está mal, un administrador debe corregirlo antes de reasignar.'
+                );
             }
 
             $nuevoUsuario = User::find($validatedData['user_id']);
@@ -102,5 +105,48 @@ class AsignacionesController extends Controller
         $vehiculo->user_id_adicional_2 = null;
         $vehiculo->user_id_adicional_3 = null;
         $vehiculo->save();
+
+        return back()->with('success', 'Conductores eliminados correctamente.');
+    }
+
+    /**
+     * Corregir el kilometraje de un registro del historial de asignaciones.
+     * Solo administradores (la ruta está en el grupo 'admin'). Sirve para
+     * arreglar lecturas de odómetro mal cargadas que bloquean reasignaciones.
+     */
+    public function updateHistorial(Request $request, Vehiculo $vehiculo, HistorialAsignaciones $historial)
+    {
+        abort_unless($historial->vehiculo_id === $vehiculo->placa, 404);
+
+        return FlashHelper::try(function () use ($request, $historial) {
+            $data = $request->validate([
+                'kilometraje' => 'required|integer|min:0|max:9999999',
+            ]);
+
+            $nuevoKm = (int) $data['kilometraje'];
+
+            // La línea de tiempo se ordena por id. La corrección no puede romper
+            // la monotonía respecto al registro anterior ni al siguiente.
+            $anterior = HistorialAsignaciones::where('vehiculo_id', $historial->vehiculo_id)
+                ->where('id', '<', $historial->id)
+                ->orderByDesc('id')
+                ->first();
+
+            $siguiente = HistorialAsignaciones::where('vehiculo_id', $historial->vehiculo_id)
+                ->where('id', '>', $historial->id)
+                ->orderBy('id')
+                ->first();
+
+            if ($anterior && $nuevoKm < $anterior->kilometraje) {
+                throw new \Exception("El kilometraje no puede ser menor al del registro anterior ({$anterior->kilometraje}).");
+            }
+
+            if ($siguiente && $nuevoKm > $siguiente->kilometraje) {
+                throw new \Exception("El kilometraje no puede ser mayor al del registro siguiente ({$siguiente->kilometraje}).");
+            }
+
+            $historial->kilometraje = $nuevoKm;
+            $historial->save();
+        }, 'Kilometraje corregido correctamente.', 'No se pudo corregir el kilometraje.');
     }
 }
